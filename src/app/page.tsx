@@ -160,7 +160,7 @@ export default function Home() {
               <CheckCircle2 className="w-5 h-5 text-primary" />
               <h2 className="text-xl font-bold uppercase tracking-wide">Analysis Result</h2>
             </div>
-            <div className="space-y-4 font-bold text-foreground/90 leading-relaxed">
+            <div className="space-y-6 font-bold text-foreground/90 leading-relaxed">
               {result.split('\n').filter(p => p.trim() !== '').map((paragraph, idx) => (
                 <p key={idx} className="bg-white/50 p-3 rounded-lg border-l-4 border-primary shadow-sm">
                   {paragraph}
