@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { analyzeSymptoms } from '@/ai/flows/symptom-analysis-flow';
+import { analyzeSymptoms, type SymptomAnalysisOutput } from '@/ai/flows/symptom-analysis-flow';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { AlertCircle, CheckCircle2, Loader2, Stethoscope } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Loader2, Stethoscope, ArrowRight } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function Home() {
   const [gender, setGender] = useState<'Male' | 'Female'>('Male');
@@ -12,7 +13,7 @@ export default function Home() {
   const [symptoms, setSymptoms] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<string | null>(null);
+  const [result, setResult] = useState<SymptomAnalysisOutput | null>(null);
   const [currentYear, setCurrentYear] = useState<number | null>(null);
 
   useEffect(() => {
@@ -43,7 +44,7 @@ export default function Home() {
         age: ageNum,
         symptoms: symptoms.trim(),
       });
-      setResult(response.analysis);
+      setResult(response);
     } catch (err: any) {
       console.error('API Error:', err);
       setError(err.message || 'Oops! Something went wrong while checking your symptoms. Please try again.');
@@ -154,17 +155,39 @@ export default function Home() {
           </div>
         )}
 
-        {result && (
-          <section className="mt-10 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        {result && result.conditions && (
+          <section className="mt-10 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="flex items-center gap-2 border-b-2 border-primary pb-2">
               <CheckCircle2 className="w-5 h-5 text-primary" />
               <h2 className="text-xl font-bold uppercase tracking-wide">Analysis Result</h2>
             </div>
-            <div className="space-y-6 font-bold text-foreground/90 leading-relaxed">
-              {result.split('\n').filter(p => p.trim() !== '').map((paragraph, idx) => (
-                <p key={idx} className="bg-white/50 p-3 rounded-lg border-l-4 border-primary shadow-sm">
-                  {paragraph}
-                </p>
+            <div className="flex flex-col gap-10">
+              {result.conditions.map((condition, idx) => (
+                <div key={idx} className="relative group">
+                  <div className="absolute -left-3 top-0 bottom-0 w-1.5 bg-primary rounded-full" />
+                  <Card className="border-none shadow-md bg-white/60 hover:bg-white/90 transition-colors">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg font-extrabold text-foreground flex items-center gap-2">
+                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-white text-xs">
+                          {idx + 1}
+                        </span>
+                        {condition.name}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest block mb-1">Likely Cause</span>
+                        <p className="text-sm font-medium leading-relaxed">{condition.cause}</p>
+                      </div>
+                      <div className="pt-2 border-t border-primary/10">
+                        <span className="text-[10px] uppercase font-bold text-primary tracking-widest flex items-center gap-1 mb-1">
+                          <ArrowRight className="w-3 h-3" /> Next Steps
+                        </span>
+                        <p className="text-sm font-bold text-foreground/80 leading-relaxed italic">{condition.nextSteps}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               ))}
             </div>
           </section>
@@ -172,7 +195,7 @@ export default function Home() {
 
         <footer className="mt-12 text-center text-xs text-muted-foreground pb-8">
           <p>© {currentYear ?? '...'} LaVidaWeb Health Buddy</p>
-          <p className="mt-1 italic">Disclaimer: This is an AI assistant, not a substitute for professional medical advice.</p>
+          <p className="mt-1 italic px-4">Disclaimer: This is an AI assistant, not a substitute for professional medical advice.</p>
         </footer>
       </main>
     </div>

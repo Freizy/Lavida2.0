@@ -18,7 +18,11 @@ const SymptomAnalysisInputSchema = z.object({
 export type SymptomAnalysisInput = z.infer<typeof SymptomAnalysisInputSchema>;
 
 const SymptomAnalysisOutputSchema = z.object({
-  analysis: z.string().describe('A concise explanation of 5 possible medical conditions, their causes, and suggested next steps.')
+  conditions: z.array(z.object({
+    name: z.string().describe('The name of the possible medical condition.'),
+    cause: z.string().describe('A concise explanation of the cause.'),
+    nextSteps: z.string().describe('Suggested next steps for the user.'),
+  })).describe('A list of exactly 5 possible medical conditions.')
 });
 export type SymptomAnalysisOutput = z.infer<typeof SymptomAnalysisOutputSchema>;
 
@@ -50,7 +54,7 @@ const symptomAnalysisPrompt = ai.definePrompt({
       },
     ],
   },
-  prompt: `You are a friendly medical assistant. Briefly explain 5 possible conditions, their causes, and suggested next steps for a {{{age}}}-year-old {{{gender}}} experiencing the following symptoms: {{{symptoms}}}. Keep the answer concise and easy to read.`,
+  prompt: `You are a friendly medical assistant. Identify exactly 5 possible conditions, their causes, and suggested next steps for a {{{age}}}-year-old {{{gender}}} experiencing the following symptoms: {{{symptoms}}}. Keep each explanation concise and easy to read.`,
 });
 
 const symptomAnalysisFlow = ai.defineFlow(
@@ -61,7 +65,7 @@ const symptomAnalysisFlow = ai.defineFlow(
   },
   async (input) => {
     const { output } = await symptomAnalysisPrompt(input);
-    if (!output) {
+    if (!output || !output.conditions) {
       throw new Error('The AI was unable to generate a health analysis. Please try again with more detail.');
     }
     return output;
