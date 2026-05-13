@@ -1,3 +1,4 @@
+
 import type {Config} from 'tailwindcss';
 
 export default {
@@ -10,9 +11,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        headline: ['Inter', 'sans-serif'],
-        code: ['monospace'],
+        body: ['PT Sans', 'sans-serif'],
+        headline: ['PT Sans', 'sans-serif'],
+        code: ['Source Code Pro', 'monospace'],
       },
       colors: {
         background: 'hsl(var(--background))',
@@ -26,8 +27,8 @@ export default {
           foreground: 'hsl(var(--popover-foreground))',
         },
         primary: {
-          DEFAULT: 'hsl(var(--primary))',
-          foreground: 'hsl(var(--primary-foreground))',
+          DEFAULT: '#27EB04',
+          foreground: '#FFFFFF',
         },
         secondary: {
           DEFAULT: 'hsl(var(--secondary))',
@@ -42,8 +43,13 @@ export default {
           foreground: 'hsl(var(--accent-foreground))',
         },
         destructive: {
-          DEFAULT: 'hsl(var(--destructive))',
-          foreground: 'hsl(var(--destructive-foreground))',
+          DEFAULT: '#B02020',
+          foreground: '#FFFFFF',
+        },
+        error: {
+          bg: '#FFECEA',
+          text: '#B02020',
+          border: '#F5C2C2',
         },
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
@@ -88,10 +94,15 @@ export default {
             height: '0',
           },
         },
+        'spin-slow': {
+          from: { transform: 'rotate(0deg)' },
+          to: { transform: 'rotate(360deg)' },
+        }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'spin-slow': 'spin-slow 8s linear infinite',
       },
     },
   },

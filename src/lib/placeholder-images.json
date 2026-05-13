@@ -1,3 +1,16 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "loading-medical",
+      "description": "A medical themed loading placeholder",
+      "imageUrl": "https://picsum.photos/seed/medical-load/400/400",
+      "imageHint": "medical laboratory"
+    },
+    {
+      "id": "app-logo",
+      "description": "Health and wellness logo placeholder",
+      "imageUrl": "https://picsum.photos/seed/lavida/100/100",
+      "imageHint": "health symbol"
+    }
+  ]
 }
