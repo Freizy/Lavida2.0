@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { analyzeSymptoms, type SymptomAnalysisOutput } from '@/ai/flows/symptom-analysis-flow';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { AlertCircle, CheckCircle2, Loader2, Stethoscope, ArrowRight } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Loader2, Stethoscope, ArrowRight, RefreshCcw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 export default function Home() {
   const [gender, setGender] = useState<'Male' | 'Female'>('Male');
@@ -53,11 +54,19 @@ export default function Home() {
     }
   };
 
+  const handleRestart = () => {
+    setGender('Male');
+    setAge('');
+    setSymptoms('');
+    setResult(null);
+    setError(null);
+  };
+
   const loadingPlaceholder = PlaceHolderImages.find(img => img.id === 'loading-medical');
 
   return (
     <div className="flex flex-col items-center justify-center p-6 min-h-screen bg-background">
-      <main className="w-full max-w-[320px] flex flex-col gap-8">
+      <main className="w-full max-w-[360px] flex flex-col gap-8">
         <header className="text-center space-y-2">
           <div className="flex justify-center mb-2">
             <div className="p-3 bg-primary rounded-full shadow-lg">
@@ -72,61 +81,56 @@ export default function Home() {
           </p>
         </header>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="gender" className="text-sm font-medium">Gender</label>
-            <select
-              id="gender"
-              value={gender}
-              onChange={(e) => setGender(e.target.value as 'Male' | 'Female')}
-              className="lavida-input cursor-pointer"
+        {!result && !loading && (
+          <form onSubmit={handleSubmit} className="space-y-4 animate-in fade-in duration-500">
+            <div className="space-y-2">
+              <label htmlFor="gender" className="text-sm font-medium">Gender</label>
+              <select
+                id="gender"
+                value={gender}
+                onChange={(e) => setGender(e.target.value as 'Male' | 'Female')}
+                className="lavida-input cursor-pointer"
+              >
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="age" className="text-sm font-medium">Age (1-99)</label>
+              <input
+                id="age"
+                type="number"
+                min="1"
+                max="99"
+                placeholder="e.g. 25"
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+                className="lavida-input"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="symptoms" className="text-sm font-medium">Symptoms</label>
+              <textarea
+                id="symptoms"
+                rows={4}
+                placeholder="Describe how you feel..."
+                value={symptoms}
+                onChange={(e) => setSymptoms(e.target.value)}
+                className="lavida-input resize-none"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="lavida-button mt-4"
             >
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="age" className="text-sm font-medium">Age (1-99)</label>
-            <input
-              id="age"
-              type="number"
-              min="1"
-              max="99"
-              placeholder="e.g. 25"
-              value={age}
-              onChange={(e) => setAge(e.target.value)}
-              className="lavida-input"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="symptoms" className="text-sm font-medium">Symptoms</label>
-            <textarea
-              id="symptoms"
-              rows={4}
-              placeholder="Describe how you feel..."
-              value={symptoms}
-              onChange={(e) => setSymptoms(e.target.value)}
-              className="lavida-input resize-none"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="lavida-button mt-4"
-          >
-            {loading ? (
-              <span className="flex items-center justify-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Checking...
-              </span>
-            ) : (
-              'Check Symptoms'
-            )}
-          </button>
-        </form>
+              Check Symptoms
+            </button>
+          </form>
+        )}
 
         {loading && (
           <div className="flex flex-col items-center justify-center space-y-4 pt-4 animate-in fade-in duration-500">
@@ -144,28 +148,40 @@ export default function Home() {
                 <Loader2 className="w-12 h-12 text-primary animate-spin" />
               </div>
             </div>
-            <p className="font-semibold text-primary animate-bounce">Loading possible Conditions...</p>
+            <p className="font-semibold text-primary animate-bounce">Analyzing Symptoms...</p>
           </div>
         )}
 
         {error && (
-          <div className="lavida-error-panel flex items-start gap-3 animate-in slide-in-from-top-2 duration-300">
-            <AlertCircle className="w-5 h-5 shrink-0" />
-            <p>{error}</p>
+          <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
+            <div className="lavida-error-panel flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <p>{error}</p>
+            </div>
+            <Button 
+              variant="outline" 
+              onClick={handleRestart} 
+              className="w-full flex items-center gap-2 border-primary text-primary hover:bg-primary/5"
+            >
+              <RefreshCcw className="w-4 h-4" /> Try Again
+            </Button>
           </div>
         )}
 
         {result && result.conditions && (
-          <section className="mt-10 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div className="flex items-center gap-2 border-b-2 border-primary pb-2">
-              <CheckCircle2 className="w-5 h-5 text-primary" />
-              <h2 className="text-xl font-bold uppercase tracking-wide">Analysis Result</h2>
+          <section className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="flex items-center justify-between border-b-2 border-primary pb-2">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-primary" />
+                <h2 className="text-xl font-bold uppercase tracking-wide">Analysis Result</h2>
+              </div>
             </div>
+            
             <div className="flex flex-col gap-10">
               {result.conditions.map((condition, idx) => (
-                <div key={idx} className="relative group">
-                  <div className="absolute -left-3 top-0 bottom-0 w-1.5 bg-primary rounded-full" />
-                  <Card className="border-none shadow-md bg-white/60 hover:bg-white/90 transition-colors">
+                <div key={idx} className="relative">
+                  <div className="absolute -left-3 top-0 bottom-0 w-1.5 bg-primary rounded-full shadow-[0_0_10px_rgba(39,235,4,0.3)]" />
+                  <Card className="border-none shadow-md bg-white/60 backdrop-blur-sm">
                     <CardHeader className="pb-2">
                       <CardTitle className="text-lg font-extrabold text-foreground flex items-center gap-2">
                         <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-white text-xs">
@@ -174,28 +190,35 @@ export default function Home() {
                         {condition.name}
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-3">
+                    <CardContent className="space-y-4">
                       <div>
                         <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest block mb-1">Likely Cause</span>
-                        <p className="text-sm font-medium leading-relaxed">{condition.cause}</p>
+                        <p className="text-sm font-medium leading-relaxed text-foreground/80">{condition.cause}</p>
                       </div>
-                      <div className="pt-2 border-t border-primary/10">
+                      <div className="pt-3 border-t border-primary/10">
                         <span className="text-[10px] uppercase font-bold text-primary tracking-widest flex items-center gap-1 mb-1">
                           <ArrowRight className="w-3 h-3" /> Next Steps
                         </span>
-                        <p className="text-sm font-bold text-foreground/80 leading-relaxed italic">{condition.nextSteps}</p>
+                        <p className="text-sm font-bold text-foreground leading-relaxed italic">{condition.nextSteps}</p>
                       </div>
                     </CardContent>
                   </Card>
                 </div>
               ))}
             </div>
+
+            <Button 
+              onClick={handleRestart} 
+              className="w-full py-6 text-lg font-bold bg-primary hover:bg-primary/90 text-white shadow-lg transition-all active:scale-95 flex items-center gap-2"
+            >
+              <RefreshCcw className="w-5 h-5" /> Start New Check
+            </Button>
           </section>
         )}
 
         <footer className="mt-12 text-center text-xs text-muted-foreground pb-8">
           <p>© {currentYear ?? '...'} LaVidaWeb Health Buddy</p>
-          <p className="mt-1 italic px-4">Disclaimer: This is an AI assistant, not a substitute for professional medical advice.</p>
+          <p className="mt-1 italic px-4">Disclaimer: This is an AI assistant, not a substitute for professional medical advice. Always consult with a qualified healthcare provider.</p>
         </footer>
       </main>
     </div>
