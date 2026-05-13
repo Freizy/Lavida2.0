@@ -1,12 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { analyzeSymptoms, type SymptomAnalysisOutput } from '@/ai/flows/symptom-analysis-flow';
+import { chatWithLaVida } from '@/ai/flows/health-chat-flow';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { AlertCircle, CheckCircle2, Loader2, Stethoscope, ArrowRight, RefreshCcw } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Loader2, Stethoscope, ArrowRight, RefreshCcw, MessageCircle, Send, User, Bot } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+
+type Message = {
+  role: 'user' | 'model';
+  content: string;
+};
 
 export default function Home() {
   const [gender, setGender] = useState<'Male' | 'Female'>('Male');
@@ -16,17 +24,29 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<SymptomAnalysisOutput | null>(null);
   const [currentYear, setCurrentYear] = useState<number | null>(null);
+  
+  // Chat state
+  const [showChat, setShowChat] = useState(false);
+  const [chatMessages, setChatMessages] = useState<Message[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setCurrentYear(new Date().getFullYear());
   }, []);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setResult(null);
 
-    // Validation
     if (!age || !symptoms.trim()) {
       setError('Please provide both age and a description of your symptoms.');
       return;
@@ -47,10 +67,50 @@ export default function Home() {
       });
       setResult(response);
     } catch (err: any) {
-      console.error('API Error:', err);
-      setError(err.message || 'Oops! Something went wrong while checking your symptoms. Please try again.');
+      setError(err.message || 'Oops! Something went wrong. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleStartChat = () => {
+    setShowChat(true);
+    if (chatMessages.length === 0 && result) {
+      setChatMessages([
+        { 
+          role: 'model', 
+          content: `Hi! I'm LaVida. I've looked at your symptoms. Based on the analysis, which of these conditions would you like to discuss further, or do you have other questions about how you're feeling?` 
+        }
+      ]);
+    }
+  };
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim() || chatLoading || !result) return;
+
+    const userMessage = chatInput.trim();
+    setChatInput('');
+    setChatMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    setChatLoading(true);
+
+    try {
+      const response = await chatWithLaVida({
+        initialContext: {
+          gender,
+          age: parseInt(age),
+          symptoms,
+          conditions: result.conditions.map(c => c.name),
+        },
+        history: chatMessages,
+        message: userMessage,
+      });
+
+      setChatMessages(prev => [...prev, { role: 'model', content: response.response }]);
+    } catch (err: any) {
+      setError('Chat Error: ' + (err.message || 'Could not reach LaVida.'));
+    } finally {
+      setChatLoading(false);
     }
   };
 
@@ -60,28 +120,32 @@ export default function Home() {
     setSymptoms('');
     setResult(null);
     setError(null);
+    setShowChat(false);
+    setChatMessages([]);
   };
 
   const loadingPlaceholder = PlaceHolderImages.find(img => img.id === 'loading-medical');
 
   return (
     <div className="flex flex-col items-center justify-center p-6 min-h-screen bg-background">
-      <main className="w-full max-w-[360px] flex flex-col gap-8">
-        <header className="text-center space-y-2">
-          <div className="flex justify-center mb-2">
-            <div className="p-3 bg-primary rounded-full shadow-lg">
-              <Stethoscope className="w-8 h-8 text-white" />
+      <main className="w-full max-w-[400px] flex flex-col gap-8">
+        {!showChat && (
+          <header className="text-center space-y-2">
+            <div className="flex justify-center mb-2">
+              <div className="p-3 bg-primary rounded-full shadow-lg">
+                <Stethoscope className="w-8 h-8 text-white" />
+              </div>
             </div>
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            LaVida Health Buddy 😎
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Simple, quick symptom analysis powered by AI.
-          </p>
-        </header>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+              LaVida Health Buddy 😎
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Simple, quick symptom analysis powered by AI.
+            </p>
+          </header>
+        )}
 
-        {!result && !loading && (
+        {!result && !loading && !showChat && (
           <form onSubmit={handleSubmit} className="space-y-4 animate-in fade-in duration-500">
             <div className="space-y-2">
               <label htmlFor="gender" className="text-sm font-medium">Gender</label>
@@ -163,12 +227,12 @@ export default function Home() {
               onClick={handleRestart} 
               className="w-full flex items-center gap-2 border-primary text-primary hover:bg-primary/5"
             >
-              <RefreshCcw className="w-4 h-4" /> Try Again
+              <RefreshCcw className="w-4 h-4" /> Start Over
             </Button>
           </div>
         )}
 
-        {result && result.conditions && (
+        {result && result.conditions && !showChat && (
           <section className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="flex items-center justify-between border-b-2 border-primary pb-2">
               <div className="flex items-center gap-2">
@@ -207,12 +271,83 @@ export default function Home() {
               ))}
             </div>
 
-            <Button 
-              onClick={handleRestart} 
-              className="w-full py-6 text-lg font-bold bg-primary hover:bg-primary/90 text-white shadow-lg transition-all active:scale-95 flex items-center gap-2"
-            >
-              <RefreshCcw className="w-5 h-5" /> Start New Check
-            </Button>
+            <div className="grid gap-3 pt-4">
+              <Button 
+                onClick={handleStartChat} 
+                className="w-full py-6 text-lg font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-lg transition-all active:scale-95 flex items-center gap-2"
+              >
+                <MessageCircle className="w-5 h-5" /> Dive Deeper (Chat)
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={handleRestart} 
+                className="w-full py-6 text-lg font-bold border-primary text-primary hover:bg-primary/5 transition-all active:scale-95 flex items-center gap-2"
+              >
+                <RefreshCcw className="w-5 h-5" /> Start New Check
+              </Button>
+            </div>
+          </section>
+        )}
+
+        {showChat && (
+          <section className="flex flex-col h-[600px] bg-white rounded-2xl shadow-2xl border border-primary/20 overflow-hidden animate-in zoom-in-95 duration-500">
+            <div className="p-4 bg-primary text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Avatar className="w-8 h-8 border-2 border-white/20">
+                  <AvatarFallback className="bg-white/10"><Bot className="w-5 h-5" /></AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="font-bold text-sm">Chat with LaVida</h3>
+                  <p className="text-[10px] opacity-80">Online Health Buddy</p>
+                </div>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setShowChat(false)} className="text-white hover:bg-white/10 h-8 px-2 text-xs">
+                Back to Results
+              </Button>
+            </div>
+
+            <ScrollArea className="flex-1 p-4 bg-[#f9fff9]">
+              <div className="space-y-4">
+                {chatMessages.map((msg, idx) => (
+                  <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[85%] p-3 rounded-2xl text-sm shadow-sm ${
+                      msg.role === 'user' 
+                        ? 'bg-primary text-white rounded-tr-none' 
+                        : 'bg-white border border-primary/10 text-foreground rounded-tl-none'
+                    }`}>
+                      <p className="leading-relaxed">{msg.content}</p>
+                    </div>
+                  </div>
+                ))}
+                {chatLoading && (
+                  <div className="flex justify-start">
+                    <div className="bg-white border border-primary/10 p-3 rounded-2xl rounded-tl-none shadow-sm">
+                      <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                    </div>
+                  </div>
+                )}
+                <div ref={scrollRef} />
+              </div>
+            </ScrollArea>
+
+            <form onSubmit={handleSendMessage} className="p-4 bg-white border-t flex gap-2">
+              <input
+                type="text"
+                placeholder="Ask follow-up questions..."
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                className="flex-1 bg-secondary rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                disabled={chatLoading}
+              />
+              <Button 
+                type="submit" 
+                size="icon" 
+                className="rounded-full bg-primary hover:bg-primary/90 shrink-0"
+                disabled={chatLoading || !chatInput.trim()}
+              >
+                <Send className="w-4 h-4" />
+              </Button>
+            </form>
           </section>
         )}
 
