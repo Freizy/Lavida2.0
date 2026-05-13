@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { analyzeSymptoms } from '@/ai/flows/symptom-analysis-flow';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -13,6 +13,11 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
+  const [currentYear, setCurrentYear] = useState<number | null>(null);
+
+  useEffect(() => {
+    setCurrentYear(new Date().getFullYear());
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,7 +171,7 @@ export default function Home() {
         )}
 
         <footer className="mt-12 text-center text-xs text-muted-foreground pb-8">
-          <p>© {new Date().getFullYear()} LaVidaWeb Health Buddy</p>
+          <p>© {currentYear ?? '...'} LaVidaWeb Health Buddy</p>
           <p className="mt-1 italic">Disclaimer: This is an AI assistant, not a substitute for professional medical advice.</p>
         </footer>
       </main>
