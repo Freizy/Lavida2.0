@@ -1,15 +1,19 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import { analyzeSymptoms, type SymptomAnalysisOutput } from '@/ai/flows/symptom-analysis-flow';
 import { chatWithLaVida } from '@/ai/flows/health-chat-flow';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { AlertCircle, CheckCircle2, Loader2, Stethoscope, ArrowRight, RefreshCcw, MessageCircle, Send, User, Bot } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Loader2, Stethoscope, ArrowRight, RefreshCcw, MessageCircle, Send, User, Bot, LogIn, LogOut, History, ChevronLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useUser, useFirestore, useAuth } from '@/firebase';
+import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import { collection, addDoc, serverTimestamp, query, where, orderBy, limit } from 'firebase/firestore';
+import { useCollection } from '@/firebase';
 
 type Message = {
   role: 'user' | 'model';
@@ -17,6 +21,10 @@ type Message = {
 };
 
 export default function Home() {
+  const { user, loading: userLoading } = useUser();
+  const db = useFirestore();
+  const auth = useAuth();
+  
   const [gender, setGender] = useState<'Male' | 'Female'>('Male');
   const [age, setAge] = useState<string>('');
   const [symptoms, setSymptoms] = useState<string>('');
@@ -32,6 +40,21 @@ export default function Home() {
   const [chatLoading, setChatLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // History state
+  const [showHistory, setShowHistory] = useState(false);
+
+  const historyQuery = useMemo(() => {
+    if (!user || !db) return null;
+    return query(
+      collection(db, 'history'),
+      where('userId', '==', user.uid),
+      orderBy('timestamp', 'desc'),
+      limit(10)
+    );
+  }, [user, db]);
+
+  const { data: historyItems } = useCollection(historyQuery);
+
   useEffect(() => {
     setCurrentYear(new Date().getFullYear());
   }, []);
@@ -41,6 +64,17 @@ export default function Home() {
       scrollRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [chatMessages]);
+
+  const handleLogin = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (err) {
+      console.error("Login failed", err);
+    }
+  };
+
+  const handleLogout = () => signOut(auth);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,6 +100,18 @@ export default function Home() {
         symptoms: symptoms.trim(),
       });
       setResult(response);
+
+      // Save to history if logged in
+      if (user && db) {
+        addDoc(collection(db, 'history'), {
+          userId: user.uid,
+          gender,
+          age: ageNum,
+          symptoms: symptoms.trim(),
+          conditions: response.conditions,
+          timestamp: serverTimestamp(),
+        });
+      }
     } catch (err: any) {
       setError(err.message || 'Oops! Something went wrong. Please try again.');
     } finally {
@@ -121,31 +167,100 @@ export default function Home() {
     setResult(null);
     setError(null);
     setShowChat(false);
+    setShowHistory(false);
     setChatMessages([]);
+  };
+
+  const selectHistoryItem = (item: any) => {
+    setGender(item.gender);
+    setAge(item.age.toString());
+    setSymptoms(item.symptoms);
+    setResult({ conditions: item.conditions });
+    setShowHistory(false);
   };
 
   const loadingPlaceholder = PlaceHolderImages.find(img => img.id === 'loading-medical');
 
   return (
-    <div className="flex flex-col items-center justify-center p-6 min-h-screen bg-background">
-      <main className="w-full max-w-[400px] flex flex-col gap-8">
-        {!showChat && (
-          <header className="text-center space-y-2">
-            <div className="flex justify-center mb-2">
-              <div className="p-3 bg-primary rounded-full shadow-lg">
-                <Stethoscope className="w-8 h-8 text-white" />
-              </div>
+    <div className="flex flex-col items-center justify-center p-4 min-h-screen bg-background">
+      {/* Navigation Header */}
+      <nav className="w-full max-w-[400px] flex items-center justify-between mb-8 py-2">
+        <div className="flex items-center gap-2">
+          <Stethoscope className="w-6 h-6 text-primary" />
+          <span className="font-bold text-lg">LaVida</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {user ? (
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" onClick={() => setShowHistory(true)} className="rounded-full">
+                <History className="w-5 h-5" />
+              </Button>
+              <Avatar className="w-8 h-8 border">
+                <AvatarImage src={user.photoURL || undefined} />
+                <AvatarFallback><User className="w-4 h-4" /></AvatarFallback>
+              </Avatar>
+              <Button variant="ghost" size="icon" onClick={handleLogout} className="rounded-full">
+                <LogOut className="w-4 h-4" />
+              </Button>
             </div>
+          ) : (
+            <Button variant="outline" size="sm" onClick={handleLogin} className="flex items-center gap-2 rounded-full border-primary text-primary">
+              <LogIn className="w-4 h-4" /> Sign In
+            </Button>
+          )}
+        </div>
+      </nav>
+
+      <main className="w-full max-w-[400px] flex flex-col gap-8 flex-1">
+        {showHistory && (
+          <div className="space-y-6 animate-in slide-in-from-left-4 duration-300">
+            <header className="flex items-center gap-4">
+              <Button variant="ghost" size="icon" onClick={() => setShowHistory(false)}>
+                <ChevronLeft className="w-6 h-6" />
+              </Button>
+              <h1 className="text-2xl font-bold">Health History</h1>
+            </header>
+            <ScrollArea className="h-[500px] pr-4">
+              <div className="space-y-4">
+                {historyItems?.length === 0 && <p className="text-center text-muted-foreground py-10">No history yet.</p>}
+                {historyItems?.map((item: any) => (
+                  <Card key={item.id} className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => selectHistoryItem(item)}>
+                    <CardHeader className="p-4 pb-2">
+                      <div className="flex justify-between items-start">
+                        <span className="text-xs font-bold text-primary">{item.gender}, {item.age}y</span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {item.timestamp?.toDate().toLocaleDateString()}
+                        </span>
+                      </div>
+                      <CardTitle className="text-sm line-clamp-1">{item.symptoms}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0">
+                      <div className="flex flex-wrap gap-1">
+                        {item.conditions.slice(0, 2).map((c: any, i: number) => (
+                          <span key={i} className="text-[9px] bg-secondary px-1.5 py-0.5 rounded-full">{c.name}</span>
+                        ))}
+                        {item.conditions.length > 2 && <span className="text-[9px] text-muted-foreground">+{item.conditions.length - 2} more</span>}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+        )}
+
+        {!showHistory && !showChat && (
+          <header className="text-center space-y-2">
             <h1 className="text-3xl font-bold tracking-tight text-foreground">
-              LaVida Health Buddy 😎
+              LaVida Buddy 😎
             </h1>
             <p className="text-sm text-muted-foreground">
-              Simple, quick symptom analysis powered by AI.
+              {user ? `Welcome back, ${user.displayName?.split(' ')[0]}` : 'Sign in to save your history!'}
             </p>
           </header>
         )}
 
-        {!result && !loading && !showChat && (
+        {!result && !loading && !showChat && !showHistory && (
           <form onSubmit={handleSubmit} className="space-y-4 animate-in fade-in duration-500">
             <div className="space-y-2">
               <label htmlFor="gender" className="text-sm font-medium">Gender</label>
@@ -232,7 +347,7 @@ export default function Home() {
           </div>
         )}
 
-        {result && result.conditions && !showChat && (
+        {result && result.conditions && !showChat && !showHistory && (
           <section className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="flex items-center justify-between border-b-2 border-primary pb-2">
               <div className="flex items-center gap-2">
