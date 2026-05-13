@@ -17,7 +17,9 @@ const SymptomAnalysisInputSchema = z.object({
 });
 export type SymptomAnalysisInput = z.infer<typeof SymptomAnalysisInputSchema>;
 
-const SymptomAnalysisOutputSchema = z.string().describe('A concise explanation of 5 possible medical conditions, their causes, and suggested next steps.');
+const SymptomAnalysisOutputSchema = z.object({
+  analysis: z.string().describe('A concise explanation of 5 possible medical conditions, their causes, and suggested next steps.')
+});
 export type SymptomAnalysisOutput = z.infer<typeof SymptomAnalysisOutputSchema>;
 
 export async function analyzeSymptoms(input: SymptomAnalysisInput): Promise<SymptomAnalysisOutput> {
@@ -28,6 +30,26 @@ const symptomAnalysisPrompt = ai.definePrompt({
   name: 'symptomAnalysisPrompt',
   input: { schema: SymptomAnalysisInputSchema },
   output: { schema: SymptomAnalysisOutputSchema },
+  config: {
+    safetySettings: [
+      {
+        category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+        threshold: 'BLOCK_NONE',
+      },
+      {
+        category: 'HARM_CATEGORY_HARASSMENT',
+        threshold: 'BLOCK_NONE',
+      },
+      {
+        category: 'HARM_CATEGORY_HATE_SPEECH',
+        threshold: 'BLOCK_NONE',
+      },
+      {
+        category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+        threshold: 'BLOCK_NONE',
+      },
+    ],
+  },
   prompt: `You are a friendly medical assistant. Briefly explain 5 possible conditions, their causes, and suggested next steps for a {{{age}}}-year-old {{{gender}}} experiencing the following symptoms: {{{symptoms}}}. Keep the answer concise and easy to read.`,
 });
 
@@ -39,6 +61,9 @@ const symptomAnalysisFlow = ai.defineFlow(
   },
   async (input) => {
     const { output } = await symptomAnalysisPrompt(input);
-    return output!;
+    if (!output) {
+      throw new Error('The AI was unable to generate a health analysis. Please try again with more detail.');
+    }
+    return output;
   }
 );

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -39,10 +38,10 @@ export default function Home() {
         age: ageNum,
         symptoms: symptoms.trim(),
       });
-      setResult(response);
-    } catch (err) {
+      setResult(response.analysis);
+    } catch (err: any) {
       console.error('API Error:', err);
-      setError('Oops! Something went wrong while checking your symptoms. Please try again.');
+      setError(err.message || 'Oops! Something went wrong while checking your symptoms. Please try again.');
     } finally {
       setLoading(false);
     }
