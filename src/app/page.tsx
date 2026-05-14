@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
@@ -20,12 +19,15 @@ import {
   LogIn, 
   LogOut, 
   History, 
-  ChevronLeft,
   Calendar as CalendarIcon,
   Activity,
-  UserCircle
+  UserCircle,
+  AlertTriangle,
+  Flame,
+  ShieldCheck,
+  Stethoscope as StethoscopeIcon
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -200,6 +202,43 @@ export default function Home() {
     setShowHistory(false);
   };
 
+  const getUrgencyStyles = (urgency: string) => {
+    switch (urgency) {
+      case 'critical':
+        return {
+          card: 'border-red-600/50 bg-red-50/50 urgency-critical',
+          header: 'bg-red-600/10',
+          badge: 'bg-red-600 text-white',
+          icon: <Flame className="w-5 h-5 text-red-600" />,
+          label: 'Critical / Emergency'
+        };
+      case 'high':
+        return {
+          card: 'border-red-500/30 bg-red-50/30 urgency-high',
+          header: 'bg-red-500/10',
+          badge: 'bg-red-500 text-white',
+          icon: <AlertTriangle className="w-5 h-5 text-red-500" />,
+          label: 'High Urgency'
+        };
+      case 'medium':
+        return {
+          card: 'border-amber-500/30 bg-amber-50/30 urgency-medium',
+          header: 'bg-amber-500/10',
+          badge: 'bg-amber-500 text-white',
+          icon: <StethoscopeIcon className="w-5 h-5 text-amber-500" />,
+          label: 'Moderate Urgency'
+        };
+      default:
+        return {
+          card: 'border-primary/30 bg-primary/5 urgency-low',
+          header: 'bg-primary/10',
+          badge: 'bg-primary text-white',
+          icon: <ShieldCheck className="w-5 h-5 text-primary" />,
+          label: 'Low Urgency'
+        };
+    }
+  };
+
   const loadingPlaceholder = PlaceHolderImages.find(img => img.id === 'loading-medical');
 
   return (
@@ -271,14 +310,6 @@ export default function Home() {
                         </div>
                         <CardTitle className="text-sm font-bold line-clamp-1 group-hover:text-primary transition-colors">{item.symptoms}</CardTitle>
                       </CardHeader>
-                      <CardContent className="p-4 pt-0">
-                        <div className="flex flex-wrap gap-1.5">
-                          {item.conditions.slice(0, 3).map((c: any, i: number) => (
-                            <span key={i} className="text-[10px] bg-secondary px-2 py-0.5 rounded-full font-medium">{c.name}</span>
-                          ))}
-                          {item.conditions.length > 3 && <span className="text-[10px] text-muted-foreground">+{item.conditions.length - 3}</span>}
-                        </div>
-                      </CardContent>
                     </Card>
                   ))
                 )}
@@ -399,7 +430,7 @@ export default function Home() {
         )}
 
         {result && result.conditions && !showChat && !showHistory && (
-          <section className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000">
+          <section className="space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-1000">
             <header className="flex items-center justify-between border-b-2 border-primary/10 pb-4">
               <div className="flex items-center gap-3">
                 <div className="bg-primary/10 p-2 rounded-full">
@@ -407,42 +438,50 @@ export default function Home() {
                 </div>
                 <div>
                   <h2 className="text-2xl font-black tracking-tight">AI Analysis</h2>
-                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Potential Conditions</p>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Urgency Assessment</p>
                 </div>
               </div>
             </header>
             
-            <div className="space-y-8">
-              {result.conditions.map((condition, idx) => (
-                <div key={idx} className="group relative">
-                  <div className="absolute -left-4 top-0 bottom-0 w-1 bg-primary/20 rounded-full transition-all group-hover:bg-primary group-hover:shadow-glow" />
-                  <Card className="border-none shadow-soft hover:shadow-xl transition-all bg-white/80 backdrop-blur-md overflow-hidden">
-                    <CardHeader className="pb-3 bg-primary/5">
-                      <div className="flex items-center gap-3">
-                        <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white text-xs font-black shadow-lg shadow-primary/30">
-                          0{idx + 1}
-                        </span>
-                        <CardTitle className="text-xl font-bold tracking-tight">{condition.name}</CardTitle>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pt-5 space-y-5">
-                      <div className="space-y-1.5">
-                        <span className="text-[10px] uppercase font-black text-muted-foreground tracking-[0.15em] flex items-center gap-1.5">
-                          <Activity className="w-3 h-3" /> Potential Cause
-                        </span>
-                        <p className="text-base text-foreground/80 leading-relaxed font-medium">{condition.cause}</p>
-                      </div>
-                      
-                      <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
-                        <span className="text-[10px] uppercase font-black text-primary tracking-[0.15em] flex items-center gap-1.5 mb-2">
-                          <ArrowRight className="w-3 h-3" /> Recommended Next Steps
-                        </span>
-                        <p className="text-sm font-bold text-foreground leading-relaxed italic">{condition.nextSteps}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              ))}
+            <div className="flex flex-col gap-10">
+              {result.conditions.map((condition, idx) => {
+                const style = getUrgencyStyles(condition.urgency);
+                return (
+                  <div key={idx} className="group relative">
+                    <Card className={cn(
+                      "border-2 shadow-soft hover:shadow-xl transition-all overflow-hidden",
+                      style.card
+                    )}>
+                      <CardHeader className={cn("pb-3 flex-row items-center justify-between", style.header)}>
+                        <div className="flex items-center gap-3">
+                          <span className="flex items-center justify-center w-8 h-8 rounded-full bg-white text-foreground text-xs font-black shadow-sm">
+                            0{idx + 1}
+                          </span>
+                          <CardTitle className="text-xl font-bold tracking-tight">{condition.name}</CardTitle>
+                        </div>
+                        <Badge className={cn("text-[10px] font-black uppercase tracking-widest px-3 py-1", style.badge)}>
+                          {condition.urgency}
+                        </Badge>
+                      </CardHeader>
+                      <CardContent className="pt-5 space-y-5">
+                        <div className="space-y-1.5">
+                          <span className="text-[10px] uppercase font-black text-muted-foreground tracking-[0.15em] flex items-center gap-1.5">
+                            {style.icon} Potential Cause
+                          </span>
+                          <p className="text-base text-foreground/80 leading-relaxed font-medium">{condition.cause}</p>
+                        </div>
+                        
+                        <div className="p-4 bg-white/50 rounded-2xl border border-black/5">
+                          <span className="text-[10px] uppercase font-black text-foreground/60 tracking-[0.15em] flex items-center gap-1.5 mb-2">
+                            <ArrowRight className="w-3 h-3" /> Recommended Next Steps
+                          </span>
+                          <p className="text-sm font-bold text-foreground leading-relaxed italic">{condition.nextSteps}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="grid grid-cols-1 gap-4 pt-6">

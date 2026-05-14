@@ -21,6 +21,7 @@ const SymptomAnalysisOutputSchema = z.object({
   conditions: z.array(z.object({
     name: z.string().describe('The name of the possible medical condition.'),
     cause: z.string().describe('A concise explanation of the cause.'),
+    urgency: z.enum(['low', 'medium', 'high', 'critical']).describe('The level of medical urgency.'),
     nextSteps: z.string().describe('Suggested next steps for the user.'),
   })).describe('A list of exactly 5 possible medical conditions.')
 });
@@ -54,7 +55,15 @@ const symptomAnalysisPrompt = ai.definePrompt({
       },
     ],
   },
-  prompt: `You are a friendly medical assistant. Identify exactly 5 possible conditions, their causes, and suggested next steps for a {{{age}}}-year-old {{{gender}}} experiencing the following symptoms: {{{symptoms}}}. Keep each explanation concise and easy to read.`,
+  prompt: `You are a friendly medical assistant. Identify exactly 5 possible conditions, their causes, and suggested next steps for a {{{age}}}-year-old {{{gender}}} experiencing the following symptoms: {{{symptoms}}}. 
+
+For each condition, assign an urgency level:
+- 'low': Conditions that can be managed with rest or over-the-counter care.
+- 'medium': Conditions that should be discussed with a primary care doctor in the near future.
+- 'high': Conditions that require prompt medical attention at urgent care or a clinic.
+- 'critical': Potentially life-threatening conditions requiring immediate emergency services.
+
+Keep each explanation concise and easy to read.`,
 });
 
 const symptomAnalysisFlow = ai.defineFlow(
