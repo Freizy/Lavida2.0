@@ -162,8 +162,6 @@ export default function Home() {
           displayName: result.user.displayName || null,
           email: result.user.email || null,
           photoURL: result.user.photoURL || null,
-          gender: null,
-          age: null,
           updatedAt: serverTimestamp(),
         },
         { merge: true },
@@ -724,8 +722,15 @@ export default function Home() {
           </div>
         )}
 
-        {loading && (
-          <div className="flex flex-col items-center justify-center space-y-8 pt-20 animate-in fade-in duration-500 text-center">
+        {(loading || result) && (
+          <div
+            className={cn(
+              "flex flex-col items-center justify-center space-y-8 pt-20 text-center transition-all duration-500",
+              result
+                ? "opacity-0 pointer-events-none -translate-y-2"
+                : "opacity-100 animate-in fade-in duration-500",
+            )}
+          >
             <div className="relative">
               <div className="absolute inset-0 bg-primary/20 rounded-full blur-3xl animate-pulse" />
               <div className="relative w-48 h-48 rounded-full overflow-hidden border-8 border-white shadow-2xl">
@@ -772,101 +777,105 @@ export default function Home() {
           </div>
         )}
 
-        {result && result.conditions && !showChat && !showHistory && (
-          <section className="space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-1000">
-            <header className="flex items-center justify-between border-b-2 border-primary/10 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="bg-primary/10 p-2 rounded-full">
-                  <CheckCircle2 className="w-6 h-6 text-primary" />
+        {result &&
+          result.conditions &&
+          !showChat &&
+          !showHistory &&
+          !showTools && (
+            <section className="space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-1000">
+              <header className="flex items-center justify-between border-b-2 border-primary/10 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="bg-primary/10 p-2 rounded-full">
+                    <CheckCircle2 className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black tracking-tight">
+                      AI Analysis
+                    </h2>
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                      Urgency Assessment
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-2xl font-black tracking-tight">
-                    AI Analysis
-                  </h2>
-                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                    Urgency Assessment
-                  </p>
-                </div>
-              </div>
-            </header>
+              </header>
 
-            <div className="flex flex-col gap-10">
-              {result.conditions.map((condition, idx) => {
-                const style = getUrgencyStyles(condition.urgency);
-                return (
-                  <div key={idx} className="group relative">
-                    <Card
-                      className={cn(
-                        "border-2 shadow-soft hover:shadow-xl transition-all overflow-hidden",
-                        style.card,
-                      )}
-                    >
-                      <CardHeader
+              <div className="flex flex-col gap-10">
+                {result.conditions.map((condition, idx) => {
+                  const style = getUrgencyStyles(condition.urgency);
+                  return (
+                    <div key={idx} className="group relative">
+                      <Card
                         className={cn(
-                          "pb-3 flex-row items-center justify-between",
-                          style.header,
+                          "border-2 shadow-soft hover:shadow-xl transition-all overflow-hidden",
+                          style.card,
                         )}
                       >
-                        <div className="flex items-center gap-3">
-                          <span className="flex items-center justify-center w-8 h-8 rounded-full bg-white text-foreground text-xs font-black shadow-sm">
-                            0{idx + 1}
-                          </span>
-                          <CardTitle className="text-xl font-bold tracking-tight">
-                            {condition.name}
-                          </CardTitle>
-                        </div>
-                        <Badge
+                        <CardHeader
                           className={cn(
-                            "text-[10px] font-black uppercase tracking-widest px-3 py-1",
-                            style.badge,
+                            "pb-3 flex-row items-center justify-between",
+                            style.header,
                           )}
                         >
-                          {condition.urgency}
-                        </Badge>
-                      </CardHeader>
-                      <CardContent className="pt-5 space-y-5">
-                        <div className="space-y-1.5">
-                          <span className="text-[10px] uppercase font-black text-muted-foreground tracking-[0.15em] flex items-center gap-1.5">
-                            {style.icon} Potential Cause
-                          </span>
-                          <p className="text-base text-foreground/80 leading-relaxed font-medium">
-                            {condition.cause}
-                          </p>
-                        </div>
+                          <div className="flex items-center gap-3">
+                            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-white text-foreground text-xs font-black shadow-sm">
+                              0{idx + 1}
+                            </span>
+                            <CardTitle className="text-xl font-bold tracking-tight">
+                              {condition.name}
+                            </CardTitle>
+                          </div>
+                          <Badge
+                            className={cn(
+                              "text-[10px] font-black uppercase tracking-widest px-3 py-1",
+                              style.badge,
+                            )}
+                          >
+                            {condition.urgency}
+                          </Badge>
+                        </CardHeader>
+                        <CardContent className="pt-5 space-y-5">
+                          <div className="space-y-1.5">
+                            <span className="text-[10px] uppercase font-black text-muted-foreground tracking-[0.15em] flex items-center gap-1.5">
+                              {style.icon} Potential Cause
+                            </span>
+                            <p className="text-base text-foreground/80 leading-relaxed font-medium">
+                              {condition.cause}
+                            </p>
+                          </div>
 
-                        <div className="p-4 bg-white/50 rounded-2xl border border-black/5">
-                          <span className="text-[10px] uppercase font-black text-foreground/60 tracking-[0.15em] flex items-center gap-1.5 mb-2">
-                            <ArrowRight className="w-3 h-3" /> Recommended Next
-                            Steps
-                          </span>
-                          <p className="text-sm font-bold text-foreground leading-relaxed italic">
-                            {condition.nextSteps}
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                );
-              })}
-            </div>
+                          <div className="p-4 bg-white/50 rounded-2xl border border-black/5">
+                            <span className="text-[10px] uppercase font-black text-foreground/60 tracking-[0.15em] flex items-center gap-1.5 mb-2">
+                              <ArrowRight className="w-3 h-3" /> Recommended
+                              Next Steps
+                            </span>
+                            <p className="text-sm font-bold text-foreground leading-relaxed italic">
+                              {condition.nextSteps}
+                            </p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  );
+                })}
+              </div>
 
-            <div className="grid grid-cols-1 gap-4 pt-6">
-              <Button
-                onClick={handleStartChat}
-                className="lavida-button !bg-blue-600 !shadow-blue-600/20 py-6 text-xl"
-              >
-                <MessageCircle className="w-6 h-6" /> Chat with LaVida
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={handleRestart}
-                className="text-muted-foreground hover:text-primary transition-colors font-bold"
-              >
-                <RefreshCcw className="w-4 h-4 mr-2" /> Start New Check
-              </Button>
-            </div>
-          </section>
-        )}
+              <div className="grid grid-cols-1 gap-4 pt-6">
+                <Button
+                  onClick={handleStartChat}
+                  className="lavida-button !bg-blue-600 !shadow-blue-600/20 py-6 text-xl"
+                >
+                  <MessageCircle className="w-6 h-6" /> Chat with LaVida
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={handleRestart}
+                  className="text-muted-foreground hover:text-primary transition-colors font-bold"
+                >
+                  <RefreshCcw className="w-4 h-4 mr-2" /> Start New Check
+                </Button>
+              </div>
+            </section>
+          )}
 
         {showChat && (
           <section className="flex flex-col h-[650px] bg-white rounded-[2rem] shadow-2xl border border-border overflow-hidden animate-in zoom-in-95 duration-500">
