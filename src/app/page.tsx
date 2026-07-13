@@ -42,6 +42,7 @@ import {
   useUser,
   useFirestore,
   useAuth,
+  useDoc,
   isFirebaseAuthConfigured,
   firebaseAuthStatusMessage,
 } from "@/firebase";
@@ -79,6 +80,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<SymptomAnalysisOutput | null>(null);
   const [currentYear, setCurrentYear] = useState<number | null>(null);
+  const [profileRestored, setProfileRestored] = useState(false);
 
   // Chat state
   const [showChat, setShowChat] = useState(false);
@@ -90,6 +92,13 @@ export default function Home() {
   // History and tools state
   const [showHistory, setShowHistory] = useState(false);
   const [showTools, setShowTools] = useState(false);
+
+  const profileRef = useMemo(() => {
+    if (!user || !db) return null;
+    return doc(db, "profiles", user.uid);
+  }, [user, db]);
+
+  const { data: profile } = useDoc(profileRef);
 
   const historyQuery = useMemo(() => {
     if (!user || !db) return null;
@@ -107,6 +116,27 @@ export default function Home() {
   useEffect(() => {
     setCurrentYear(new Date().getFullYear());
   }, []);
+
+  useEffect(() => {
+    if (!profile) {
+      setProfileRestored(false);
+      return;
+    }
+
+    const hasSavedGender =
+      profile.gender === "Female" || profile.gender === "Male";
+    const hasSavedAge = profile.age !== null && profile.age !== undefined;
+
+    if (hasSavedGender) {
+      setGender(profile.gender);
+    }
+
+    if (hasSavedAge) {
+      setAge(String(profile.age));
+    }
+
+    setProfileRestored(hasSavedGender || hasSavedAge);
+  }, [profile]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -429,7 +459,12 @@ export default function Home() {
         </div>
       </nav>
 
-      <main className="w-full max-w-md px-6 flex flex-col gap-8 pb-12 flex-1">
+      <main
+        className={cn(
+          "w-full px-6 flex flex-col gap-8 pb-12 flex-1 transition-all duration-300",
+          showHistory || showTools ? "max-w-5xl" : "max-w-md",
+        )}
+      >
         {showHistory && (
           <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
             <div className="flex items-center justify-between">
@@ -600,6 +635,13 @@ export default function Home() {
             </header>
 
             <form onSubmit={handleSubmit} className="space-y-6">
+              {profileRestored && (
+                <div className="flex items-center gap-2 rounded-full bg-primary/10 px-3 py-2 text-xs font-bold text-primary">
+                  <CheckCircle2 className="w-4 h-4" />
+                  Saved profile restored
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label
