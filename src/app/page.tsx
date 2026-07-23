@@ -9,10 +9,15 @@ import {
   History,
   HeartPulse,
   User,
+  Bell,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { LanguageToggle } from "@/components/language-toggle";
+import { NotificationPanel } from "@/components/notification-panel";
+import { useNotificationStore } from "@/hooks/use-notification-store";
 import {
   useUser,
   useFirestore,
@@ -35,6 +40,7 @@ import {
 } from "firebase/firestore";
 import { useCollection } from "@/firebase";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
 
 import { SymptomForm } from "./_components/symptom-form";
 import { ConditionCard } from "./_components/condition-card";
@@ -58,6 +64,7 @@ export default function Home() {
   const db = useFirestore();
   const auth = useAuth();
   const authEnabled = isFirebaseAuthConfigured;
+  const { t } = useI18n();
 
   const [gender, setGender] = useState<"Male" | "Female">("Male");
   const [age, setAge] = useState<string>("");
@@ -75,6 +82,8 @@ export default function Home() {
 
   const [showHistory, setShowHistory] = useState(false);
   const [showTools, setShowTools] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const { unreadCount } = useNotificationStore();
 
   const profileRef = useMemo(() => {
     if (!user || !db) return null;
@@ -115,10 +124,6 @@ export default function Home() {
 
     setProfileRestored(hasSavedGender || hasSavedAge);
   }, [profile]);
-
-  const latestCheckup = historyItems?.[0];
-  const lastSymptoms = latestCheckup?.symptoms || "No recent symptom check yet";
-  const latestConditions = latestCheckup?.conditions || [];
 
   const handleLogin = async () => {
     if (!authEnabled || !auth || !db) {
@@ -294,8 +299,28 @@ export default function Home() {
           <span className="font-bold text-2xl tracking-tight">LaVida</span>
         </div>
         <div className="flex items-center gap-3">
+          <ThemeToggle />
+          <LanguageToggle />
           {user ? (
             <>
+              <div className="relative">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowNotifications((prev) => !prev)}
+                  className={cn(
+                    "rounded-xl transition-colors",
+                    showNotifications && "bg-primary/10 text-primary",
+                  )}
+                >
+                  <Bell className="w-5 h-5" />
+                </Button>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                    {unreadCount}
+                  </span>
+                )}
+              </div>
               <Button
                 variant="ghost"
                 size="icon"
@@ -354,11 +379,18 @@ export default function Home() {
               className="lavida-button !w-auto !py-2 rounded-full px-6 shadow-glow disabled:cursor-not-allowed"
             >
               <LogIn className="w-4 h-4" />{" "}
-              {authEnabled ? "Sign In" : "Sign In Unavailable"}
+              {authEnabled ? t.nav.signIn : "Sign In Unavailable"}
             </Button>
           )}
         </div>
       </nav>
+
+      <div className="relative w-full max-w-2xl px-6 md:px-0">
+        <NotificationPanel
+          isOpen={showNotifications}
+          onClose={() => setShowNotifications(false)}
+        />
+      </div>
 
       <main
         className={cn(
@@ -370,27 +402,15 @@ export default function Home() {
           <HistoryPanel
             items={historyItems}
             loading={historyLoading}
+            isLoggedIn={!!user}
             onSelect={selectHistoryItem}
             onClose={() => setShowHistory(false)}
+            onSignIn={handleLogin}
           />
         )}
 
         {showTools && (
           <ToolsPanel
-            lastSymptoms={lastSymptoms}
-            latestConditions={latestConditions}
-            onHealthSummary={() => {
-              setShowTools(false);
-              if (!user) {
-                setError("Please sign in to access your personalized health summary.");
-                return;
-              }
-              router.push("/dashboard");
-            }}
-            onCareContinuity={() => {
-              setShowTools(false);
-              setShowHistory(true);
-            }}
             onWellnessAssistant={() => {
               setShowTools(false);
               setShowChat(true);
@@ -399,7 +419,7 @@ export default function Home() {
                   {
                     role: "model",
                     content:
-                      "Hi! I'm LaVida, your health buddy. I can help you review your health summary, follow up on saved checkups, or answer questions about your next wellness steps.",
+                      "Hi! I'm LaVida, your health buddy. I can help you with symptom follow-ups, health guidance, and wellness recommendations.",
                   },
                 ]);
               }
@@ -429,6 +449,9 @@ export default function Home() {
         {result && result.conditions && !showChat && !showHistory && !showTools && (
           <ResultsView
             conditions={result.conditions}
+            gender={gender}
+            age={age}
+            symptoms={symptoms}
             onStartChat={handleStartChat}
             onRestart={handleRestart}
           />
@@ -452,9 +475,7 @@ export default function Home() {
               © {currentYear ?? "2024"} LaVida Health Labs
             </p>
             <p className="text-[11px] font-bold text-muted-foreground/40 leading-relaxed px-8 italic">
-              Medical Disclaimer: This AI is for information only and not a
-              substitute for professional medical advice. If you have an
-              emergency, please call local emergency services immediately.
+              {t.footer.disclaimer}
             </p>
           </div>
         </footer>

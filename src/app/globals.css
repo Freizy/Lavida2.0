@@ -27,6 +27,30 @@
     --ring: 111 62% 34%;
     --radius: 0.75rem;
   }
+
+  .dark {
+    --background: 120 10% 10%;
+    --foreground: 120 10% 90%;
+    --card: 120 10% 12%;
+    --card-foreground: 120 10% 90%;
+    --popover: 120 10% 12%;
+    --popover-foreground: 120 10% 90%;
+    --primary: 111 62% 40%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 120 10% 16%;
+    --secondary-foreground: 120 10% 90%;
+    --muted: 120 10% 16%;
+    --muted-foreground: 120 5% 60%;
+    --accent: 120 10% 16%;
+    --accent-foreground: 120 10% 90%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --warning: 38 80% 45%;
+    --warning-foreground: 0 0% 100%;
+    --border: 120 10% 22%;
+    --input: 111 62% 40%;
+    --ring: 111 62% 40%;
+  }
 }
 
 @layer base {
@@ -45,6 +69,10 @@
   @apply w-full px-4 py-3 rounded-xl border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-base placeholder:text-muted-foreground/60;
 }
 
+.dark .lavida-input {
+  @apply bg-secondary;
+}
+
 .lavida-button {
   @apply w-full bg-primary text-white py-3 px-6 rounded-xl font-bold shadow-lg shadow-primary/20 transition-all hover:brightness-105 hover:shadow-primary/30 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2;
 }
@@ -58,8 +86,16 @@
   box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
 }
 
+.dark .shadow-soft {
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
+}
+
 .shadow-glow {
   box-shadow: 0 0 18px rgba(27, 154, 10, 0.16);
+}
+
+.dark .shadow-glow {
+  box-shadow: 0 0 18px rgba(27, 154, 10, 0.25);
 }
 
 .urgency-low {

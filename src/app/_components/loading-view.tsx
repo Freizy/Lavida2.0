@@ -3,8 +3,10 @@
 import Image from "next/image";
 import { Loader2 } from "lucide-react";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
+import { useI18n } from "@/lib/i18n";
 
 export function LoadingView() {
+  const { t } = useI18n();
   const loadingPlaceholder = PlaceHolderImages.find(
     (img) => img.id === "loading-medical",
   );
@@ -30,10 +32,10 @@ export function LoadingView() {
       </div>
       <div className="space-y-2">
         <p className="text-2xl font-black text-primary animate-bounce">
-          Consulting AI Buddy...
+          {t.home.consulting}
         </p>
         <p className="text-muted-foreground font-medium">
-          This usually takes about 5 seconds.
+          {t.home.consultSubtext}
         </p>
       </div>
     </div>

@@ -1,11 +1,12 @@
 "use client";
 
-import { History, Calendar as CalendarIcon, Activity } from "lucide-react";
+import { History, Calendar as CalendarIcon, Activity, LogIn } from "lucide-react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 type HistoryItem = {
   id: string;
@@ -19,21 +20,27 @@ type HistoryItem = {
 type HistoryPanelProps = {
   items: HistoryItem[] | undefined;
   loading: boolean;
+  isLoggedIn: boolean;
   onSelect: (item: HistoryItem) => void;
   onClose: () => void;
+  onSignIn: () => void;
 };
 
 export function HistoryPanel({
   items,
   loading,
+  isLoggedIn,
   onSelect,
   onClose,
+  onSignIn,
 }: HistoryPanelProps) {
+  const { t } = useI18n();
+
   return (
     <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold flex items-center gap-2">
-          <History className="w-6 h-6 text-primary" /> History
+          <History className="w-6 h-6 text-primary" /> {t.history.title}
         </h2>
         <Button variant="ghost" size="sm" onClick={onClose}>
           Close
@@ -41,7 +48,22 @@ export function HistoryPanel({
       </div>
       <ScrollArea className="h-[60vh] -mx-2 px-2">
         <div className="space-y-4 pb-4">
-          {loading ? (
+          {!isLoggedIn ? (
+            <div className="text-center py-20 space-y-4">
+              <div className="bg-primary/10 p-4 rounded-full w-fit mx-auto">
+                <LogIn className="w-10 h-10 text-primary" />
+              </div>
+              <div className="space-y-2">
+                <p className="font-bold text-lg">{t.history.signInPrompt}</p>
+                <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                  {t.history.signInDesc}
+                </p>
+              </div>
+              <Button onClick={onSignIn} className="lavida-button !w-auto px-6">
+                <LogIn className="w-4 h-4 mr-2" /> {t.nav.signIn}
+              </Button>
+            </div>
+          ) : loading ? (
             <div className="flex justify-center py-20">
               <Loader2 className="w-8 h-8 animate-spin text-primary/40" />
             </div>
@@ -49,7 +71,7 @@ export function HistoryPanel({
             <div className="text-center py-20 space-y-3">
               <Activity className="w-12 h-12 text-muted-foreground/20 mx-auto" />
               <p className="text-muted-foreground">
-                Your check-up history will appear here.
+                {t.history.empty}
               </p>
             </div>
           ) : (

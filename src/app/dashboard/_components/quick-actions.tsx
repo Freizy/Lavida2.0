@@ -3,14 +3,11 @@
 import { useRouter } from "next/navigation";
 import {
   Lightbulb,
-  BookOpen,
   Phone,
-  HeartPulse,
   Stethoscope,
-  Brain,
+  Pill,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 
 export function QuickActions() {
   const router = useRouter();
@@ -24,18 +21,11 @@ export function QuickActions() {
       color: "bg-primary/10 text-primary",
     },
     {
-      icon: <Brain className="w-5 h-5" />,
-      title: "Health Education",
-      description: "Learn about common conditions",
-      onClick: () => {},
-      color: "bg-blue-500/10 text-blue-600",
-    },
-    {
-      icon: <HeartPulse className="w-5 h-5" />,
-      title: "Wellness Tips",
-      description: "Daily health recommendations",
-      onClick: () => {},
-      color: "bg-green-500/10 text-green-600",
+      icon: <Pill className="w-5 h-5" />,
+      title: "Medication Tracker",
+      description: "Track your medications",
+      onClick: () => router.push("/medications"),
+      color: "bg-purple-500/10 text-purple-600",
     },
     {
       icon: <Phone className="w-5 h-5" />,
@@ -54,19 +44,19 @@ export function QuickActions() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           {actions.map((action, index) => (
             <button
               key={index}
               onClick={action.onClick}
-              className="flex items-start gap-3 p-3 rounded-xl border hover:bg-secondary/50 hover:border-primary/30 transition-all text-left"
+              className="flex flex-col items-center gap-2 p-4 rounded-xl border hover:bg-secondary/50 hover:border-primary/30 transition-all text-center"
             >
-              <div className={`p-2 rounded-lg ${action.color}`}>
+              <div className={`p-3 rounded-xl ${action.color}`}>
                 {action.icon}
               </div>
               <div>
                 <p className="text-sm font-semibold">{action.title}</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   {action.description}
                 </p>
               </div>

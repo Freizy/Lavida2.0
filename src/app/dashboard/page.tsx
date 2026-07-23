@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   CalendarClock,
@@ -9,10 +8,12 @@ import {
   ShieldCheck,
   Sparkles,
   UserCircle2,
+  ArrowLeft,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useUser, useFirestore, useDoc } from "@/firebase";
 import {
   collection,
@@ -24,9 +25,11 @@ import {
   where,
 } from "firebase/firestore";
 import { useCollection } from "@/firebase";
+import { useI18n } from "@/lib/i18n";
 
 import { DashboardStats } from "./_components/dashboard-stats";
 import { HealthOverview } from "./_components/health-overview";
+import { HealthScore } from "./_components/health-score";
 import { QuickActions } from "./_components/quick-actions";
 import { HealthTips } from "./_components/health-tips";
 import { EmergencyContacts } from "./_components/emergency-contacts";
@@ -35,6 +38,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { user } = useUser();
   const db = useFirestore();
+  const { t } = useI18n();
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileStatus, setProfileStatus] = useState<string | null>(null);
   const [profileForm, setProfileForm] = useState<{
@@ -105,10 +109,10 @@ export default function DashboardPage() {
         { merge: true },
       );
 
-      setProfileStatus("Profile updated successfully.");
+      setProfileStatus(t.dashboard.saved);
     } catch (error) {
       console.error("Failed to save profile", error);
-      setProfileStatus("Unable to update profile right now.");
+      setProfileStatus(t.dashboard.saveError);
     } finally {
       setSavingProfile(false);
     }
@@ -120,26 +124,28 @@ export default function DashboardPage() {
         <div className="rounded-3xl border bg-gradient-to-r from-primary/10 via-background to-background p-6 shadow-sm">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">Welcome back</p>
-              <h1 className="text-3xl font-bold">Your health dashboard</h1>
+              <p className="text-sm text-muted-foreground">{t.dashboard.welcome}</p>
+              <h1 className="text-3xl font-bold">{t.dashboard.title}</h1>
               <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
-                Track your saved profile, revisit your symptom history, and keep
-                your health records organized in one place.
+                {t.dashboard.subtitle}
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
+              <ThemeToggle />
               <Button
                 variant="outline"
                 className="rounded-full"
                 onClick={() => router.push("/")}
               >
-                Quick check again
+                <ArrowLeft className="w-4 h-4 mr-1" /> Back
               </Button>
-              <Link href="/">
-                <Button variant="outline" className="rounded-full">
-                  Back to check-up
-                </Button>
-              </Link>
+              <Button
+                variant="outline"
+                className="rounded-full"
+                onClick={() => router.push("/")}
+              >
+                {t.dashboard.quickCheck}
+              </Button>
             </div>
           </div>
         </div>
@@ -164,11 +170,12 @@ export default function DashboardPage() {
           />
 
           <div className="space-y-4">
+            <HealthScore historyItems={historyItems || []} />
+
             <Card className="border-primary/10">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <UserCircle2 className="w-4 h-4 text-primary" /> Profile
-                  settings
+                  <UserCircle2 className="w-4 h-4 text-primary" /> {t.dashboard.profileSettings}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -176,7 +183,7 @@ export default function DashboardPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
                       <label className="text-xs font-medium text-muted-foreground">
-                        Gender
+                        {t.home.gender}
                       </label>
                       <select
                         value={profileForm.gender}
@@ -188,13 +195,13 @@ export default function DashboardPage() {
                         }
                         className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
                       >
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
+                        <option value="Male">{t.home.male}</option>
+                        <option value="Female">{t.home.female}</option>
                       </select>
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs font-medium text-muted-foreground">
-                        Age
+                        {t.home.age}
                       </label>
                       <input
                         type="number"
@@ -208,7 +215,7 @@ export default function DashboardPage() {
                           }))
                         }
                         className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
-                        placeholder="Enter age"
+                        placeholder={t.home.agePlaceholder}
                       />
                     </div>
                   </div>
@@ -218,7 +225,7 @@ export default function DashboardPage() {
                     className="rounded-full"
                     disabled={savingProfile}
                   >
-                    {savingProfile ? "Saving..." : "Save profile"}
+                    {savingProfile ? t.dashboard.saving : t.dashboard.saveProfile}
                   </Button>
 
                   {profileStatus ? (
@@ -233,14 +240,13 @@ export default function DashboardPage() {
             <Card className="border-primary/10">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <CalendarClock className="w-4 h-4 text-primary" /> Latest
-                  health summary
+                  <CalendarClock className="w-4 h-4 text-primary" /> {t.dashboard.healthSummary}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="rounded-xl border bg-primary/5 p-3">
                   <div className="flex items-center gap-2 text-sm font-semibold text-primary">
-                    <Sparkles className="w-4 h-4" /> Personalized health summary
+                    <Sparkles className="w-4 h-4" /> {t.dashboard.healthSummary}
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground">
                     {lastSymptoms}
@@ -249,8 +255,7 @@ export default function DashboardPage() {
 
                 <div className="rounded-xl border p-3">
                   <div className="flex items-center gap-2 text-sm font-semibold">
-                    <ShieldCheck className="w-4 h-4 text-primary" /> Detected
-                    conditions
+                    <ShieldCheck className="w-4 h-4 text-primary" /> {t.dashboard.conditions}
                   </div>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {latestConditions.length ? (
@@ -264,7 +269,7 @@ export default function DashboardPage() {
                       ))
                     ) : (
                       <span className="text-sm text-muted-foreground">
-                        No current conditions listed.
+                        {t.dashboard.noConditions}
                       </span>
                     )}
                   </div>
@@ -272,12 +277,10 @@ export default function DashboardPage() {
 
                 <div className="rounded-xl border p-3">
                   <div className="flex items-center gap-2 text-sm font-semibold">
-                    <HeartPulse className="w-4 h-4 text-primary" /> Care
-                    continuity
+                    <HeartPulse className="w-4 h-4 text-primary" /> Care continuity
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Your previous checkups remain available in one place for
-                    quick follow-up.
+                    Your previous checkups remain available in one place for quick follow-up.
                   </p>
                 </div>
               </CardContent>
