@@ -4,13 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  Activity,
   CalendarClock,
-  Clock3,
   HeartPulse,
   ShieldCheck,
   Sparkles,
-  ScrollText,
   UserCircle2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +24,12 @@ import {
   where,
 } from "firebase/firestore";
 import { useCollection } from "@/firebase";
+
+import { DashboardStats } from "./_components/dashboard-stats";
+import { HealthOverview } from "./_components/health-overview";
+import { QuickActions } from "./_components/quick-actions";
+import { HealthTips } from "./_components/health-tips";
+import { EmergencyContacts } from "./_components/emergency-contacts";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -141,114 +144,24 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <UserCircle2 className="w-4 h-4 text-primary" /> Profile
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <p className="font-semibold">
-                {user?.displayName || "Health user"}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {user?.email || "No email on file"}
-              </p>
-              <div className="flex gap-2 pt-2 flex-wrap">
-                <Badge>{profile?.gender || "Gender not set"}</Badge>
-                <Badge>
-                  {profile?.age ? `${profile.age} years` : "Age not set"}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <ScrollText className="w-4 h-4 text-primary" /> History
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">{historyItems?.length || 0}</p>
-              <p className="text-sm text-muted-foreground">
-                Saved symptom checkups
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <Clock3 className="w-4 h-4 text-primary" /> Last check
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm font-semibold">{lastUpdated}</p>
-              <p className="text-sm text-muted-foreground line-clamp-2">
-                {lastSymptoms}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <HeartPulse className="w-4 h-4 text-primary" /> Tools
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Personalized recommendations, reminders, and follow-up support
-                are ready for your next step.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+        <DashboardStats
+          historyCount={historyItems?.length || 0}
+          lastSymptoms={lastSymptoms}
+          lastUpdated={lastUpdated}
+          latestConditions={latestConditions}
+          userName={user?.displayName || "Health user"}
+          userEmail={user?.email || "No email on file"}
+          userPhoto={user?.photoURL || null}
+          profileGender={profile?.gender || null}
+          profileAge={profile?.age || null}
+        />
 
         <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
-          <Card className="border-primary/10">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Activity className="w-4 h-4 text-primary" /> Symptom history
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {historyLoading ? (
-                <p className="text-sm text-muted-foreground">
-                  Loading history...
-                </p>
-              ) : historyItems?.length ? (
-                historyItems.map((item: any) => (
-                  <div key={item.id} className="rounded-xl border p-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="font-medium text-sm">{item.symptoms}</p>
-                      <span className="text-xs text-muted-foreground">
-                        {item.timestamp?.toDate?.().toLocaleDateString() ||
-                          "Recent"}
-                      </span>
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {item.conditions?.map((condition: any, index: number) => (
-                        <Badge
-                          key={`${condition.name}-${index}`}
-                          variant="secondary"
-                        >
-                          {condition.name}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No check-up history yet. Run your first symptom analysis from
-                  the main page.
-                </p>
-              )}
-            </CardContent>
-          </Card>
+          <HealthOverview
+            latestConditions={latestConditions}
+            lastSymptoms={lastSymptoms}
+            historyCount={historyItems?.length || 0}
+          />
 
           <div className="space-y-4">
             <Card className="border-primary/10">
@@ -370,6 +283,13 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           </div>
+        </div>
+
+        <QuickActions />
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <HealthTips />
+          <EmergencyContacts />
         </div>
       </div>
     </div>

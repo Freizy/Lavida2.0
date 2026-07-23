@@ -1,42 +1,17 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import {
-  analyzeSymptoms,
-  type SymptomAnalysisOutput,
-} from "@/ai/flows/symptom-analysis-flow";
-import { chatWithLaVida } from "@/ai/flows/health-chat-flow";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
-import {
-  AlertCircle,
-  CheckCircle2,
-  Loader2,
   Stethoscope,
-  ArrowRight,
-  RefreshCcw,
-  MessageCircle,
-  Send,
-  User,
-  Bot,
   LogIn,
   LogOut,
   History,
-  Calendar as CalendarIcon,
-  Activity,
-  UserCircle,
-  AlertTriangle,
-  Flame,
   HeartPulse,
-  ShieldCheck,
-  Stethoscope as StethoscopeIcon,
+  User,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
   useUser,
@@ -61,6 +36,17 @@ import {
 import { useCollection } from "@/firebase";
 import { cn } from "@/lib/utils";
 
+import { SymptomForm } from "./_components/symptom-form";
+import { ConditionCard } from "./_components/condition-card";
+import { HealthChat } from "./_components/health-chat";
+import { HistoryPanel } from "./_components/history-panel";
+import { ToolsPanel } from "./_components/tools-panel";
+import { LoadingView } from "./_components/loading-view";
+import { ErrorView } from "./_components/error-view";
+import { ResultsView } from "./_components/results-view";
+import { analyzeSymptoms, type SymptomAnalysisOutput } from "@/ai/flows/symptom-analysis-flow";
+import { chatWithLaVida } from "@/ai/flows/health-chat-flow";
+
 type Message = {
   role: "user" | "model";
   content: string;
@@ -82,14 +68,11 @@ export default function Home() {
   const [currentYear, setCurrentYear] = useState<number | null>(null);
   const [profileRestored, setProfileRestored] = useState(false);
 
-  // Chat state
   const [showChat, setShowChat] = useState(false);
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
 
-  // History and tools state
   const [showHistory, setShowHistory] = useState(false);
   const [showTools, setShowTools] = useState(false);
 
@@ -127,22 +110,15 @@ export default function Home() {
       profile.gender === "Female" || profile.gender === "Male";
     const hasSavedAge = profile.age !== null && profile.age !== undefined;
 
-    if (hasSavedGender) {
-      setGender(profile.gender);
-    }
-
-    if (hasSavedAge) {
-      setAge(String(profile.age));
-    }
+    if (hasSavedGender) setGender(profile.gender);
+    if (hasSavedAge) setAge(String(profile.age));
 
     setProfileRestored(hasSavedGender || hasSavedAge);
   }, [profile]);
 
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [chatMessages]);
+  const latestCheckup = historyItems?.[0];
+  const lastSymptoms = latestCheckup?.symptoms || "No recent symptom check yet";
+  const latestConditions = latestCheckup?.conditions || [];
 
   const handleLogin = async () => {
     if (!authEnabled || !auth || !db) {
@@ -250,37 +226,6 @@ export default function Home() {
     }
   };
 
-  const openHealthSummary = () => {
-    setShowTools(false);
-
-    if (!user) {
-      setError("Please sign in to access your personalized health summary.");
-      return;
-    }
-
-    router.push("/dashboard");
-  };
-
-  const openCareContinuity = () => {
-    setShowTools(false);
-    setShowHistory(true);
-  };
-
-  const openWellnessAssistant = () => {
-    setShowTools(false);
-    setShowChat(true);
-
-    if (chatMessages.length === 0) {
-      setChatMessages([
-        {
-          role: "model",
-          content:
-            "Hi! I'm LaVida, your health buddy. I can help you review your health summary, follow up on saved checkups, or answer questions about your next wellness steps.",
-        },
-      ]);
-    }
-  };
-
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim() || chatLoading || !result) return;
@@ -336,50 +281,8 @@ export default function Home() {
     setShowHistory(false);
   };
 
-  const getUrgencyStyles = (urgency: string) => {
-    switch (urgency) {
-      case "critical":
-        return {
-          card: "border-red-600/50 bg-red-50/50 urgency-critical",
-          header: "bg-red-600/10",
-          badge: "bg-red-600 text-white",
-          icon: <Flame className="w-5 h-5 text-red-600" />,
-          label: "Critical / Emergency",
-        };
-      case "high":
-        return {
-          card: "border-red-500/30 bg-red-50/30 urgency-high",
-          header: "bg-red-500/10",
-          badge: "bg-red-500 text-white",
-          icon: <AlertTriangle className="w-5 h-5 text-red-500" />,
-          label: "High Urgency",
-        };
-      case "medium":
-        return {
-          card: "border-amber-500/30 bg-amber-50/30 urgency-medium",
-          header: "bg-amber-500/10",
-          badge: "bg-amber-500 text-white",
-          icon: <StethoscopeIcon className="w-5 h-5 text-amber-500" />,
-          label: "Moderate Urgency",
-        };
-      default:
-        return {
-          card: "border-primary/30 bg-primary/5 urgency-low",
-          header: "bg-primary/10",
-          badge: "bg-primary text-white",
-          icon: <ShieldCheck className="w-5 h-5 text-primary" />,
-          label: "Low Urgency",
-        };
-    }
-  };
-
-  const loadingPlaceholder = PlaceHolderImages.find(
-    (img) => img.id === "loading-medical",
-  );
-
   return (
     <div className="flex flex-col items-center min-h-screen bg-background text-foreground selection:bg-primary/20">
-      {/* Navigation Header */}
       <nav className="w-full max-w-2xl flex items-center justify-between p-6 md:px-0">
         <div
           className="flex items-center gap-2 group cursor-pointer"
@@ -464,508 +367,82 @@ export default function Home() {
         )}
       >
         {showHistory && (
-          <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold flex items-center gap-2">
-                <History className="w-6 h-6 text-primary" /> History
-              </h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowHistory(false)}
-              >
-                Close
-              </Button>
-            </div>
-            <ScrollArea className="h-[60vh] -mx-2 px-2">
-              <div className="space-y-4 pb-4">
-                {historyLoading ? (
-                  <div className="flex justify-center py-20">
-                    <Loader2 className="w-8 h-8 animate-spin text-primary/40" />
-                  </div>
-                ) : historyItems?.length === 0 ? (
-                  <div className="text-center py-20 space-y-3">
-                    <Activity className="w-12 h-12 text-muted-foreground/20 mx-auto" />
-                    <p className="text-muted-foreground">
-                      Your check-up history will appear here.
-                    </p>
-                  </div>
-                ) : (
-                  historyItems?.map((item: any) => (
-                    <Card
-                      key={item.id}
-                      className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all group overflow-hidden"
-                      onClick={() => selectHistoryItem(item)}
-                    >
-                      <CardHeader className="p-4 pb-2 space-y-1">
-                        <div className="flex justify-between items-start">
-                          <div className="flex gap-2">
-                            <Badge
-                              variant="secondary"
-                              className="bg-primary/5 text-primary border-none"
-                            >
-                              {item.gender}
-                            </Badge>
-                            <Badge
-                              variant="secondary"
-                              className="bg-primary/5 text-primary border-none"
-                            >
-                              {item.age}y
-                            </Badge>
-                          </div>
-                          <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
-                            <CalendarIcon className="w-3 h-3" />
-                            {item.timestamp
-                              ?.toDate()
-                              .toLocaleDateString(undefined, {
-                                month: "short",
-                                day: "numeric",
-                              })}
-                          </span>
-                        </div>
-                        <CardTitle className="text-sm font-bold line-clamp-1 group-hover:text-primary transition-colors">
-                          {item.symptoms}
-                        </CardTitle>
-                      </CardHeader>
-                    </Card>
-                  ))
-                )}
-              </div>
-            </ScrollArea>
-          </div>
+          <HistoryPanel
+            items={historyItems}
+            loading={historyLoading}
+            onSelect={selectHistoryItem}
+            onClose={() => setShowHistory(false)}
+          />
         )}
 
         {showTools && (
-          <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold flex items-center gap-2">
-                <HeartPulse className="w-6 h-6 text-primary" /> Health tools
-              </h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowTools(false)}
-              >
-                Close
-              </Button>
-            </div>
-            <div className="space-y-4">
-              <Card
-                role="button"
-                tabIndex={0}
-                onClick={openHealthSummary}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    openHealthSummary();
-                  }
-                }}
-                className="overflow-hidden cursor-pointer transition-all hover:border-primary/50 hover:shadow-md"
-              >
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">
-                    Personalized health summary
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground">
-                  Review your saved profile details, latest symptom patterns,
-                  and follow-up recommendations in one place.
-                </CardContent>
-              </Card>
-
-              <Card
-                role="button"
-                tabIndex={0}
-                onClick={openCareContinuity}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    openCareContinuity();
-                  }
-                }}
-                className="overflow-hidden cursor-pointer transition-all hover:border-primary/50 hover:shadow-md"
-              >
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Care continuity</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground">
-                  Keep a clear log of symptom checkups so your health records
-                  stay organized and easy to revisit.
-                </CardContent>
-              </Card>
-
-              <Card
-                role="button"
-                tabIndex={0}
-                onClick={openWellnessAssistant}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    openWellnessAssistant();
-                  }
-                }}
-                className="overflow-hidden cursor-pointer transition-all hover:border-primary/50 hover:shadow-md"
-              >
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">
-                    Future wellness tools
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground">
-                  This panel is ready for reminders, habit tracking, medication
-                  support, and more personalized health insights.
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+          <ToolsPanel
+            lastSymptoms={lastSymptoms}
+            latestConditions={latestConditions}
+            onHealthSummary={() => {
+              setShowTools(false);
+              if (!user) {
+                setError("Please sign in to access your personalized health summary.");
+                return;
+              }
+              router.push("/dashboard");
+            }}
+            onCareContinuity={() => {
+              setShowTools(false);
+              setShowHistory(true);
+            }}
+            onWellnessAssistant={() => {
+              setShowTools(false);
+              setShowChat(true);
+              if (chatMessages.length === 0) {
+                setChatMessages([
+                  {
+                    role: "model",
+                    content:
+                      "Hi! I'm LaVida, your health buddy. I can help you review your health summary, follow up on saved checkups, or answer questions about your next wellness steps.",
+                  },
+                ]);
+              }
+            }}
+            onClose={() => setShowTools(false)}
+          />
         )}
 
         {!showHistory && !showTools && !result && !loading && !showChat && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-top-4 duration-500">
-            <header className="space-y-3">
-              <h1 className="text-4xl font-extrabold tracking-tight leading-tight">
-                How are you <span className="text-primary">feeling</span> today?
-              </h1>
-              <p className="text-muted-foreground text-lg">
-                Describe your symptoms and get an AI-powered health analysis in
-                seconds.
-              </p>
-            </header>
-
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {profileRestored && (
-                <div className="flex items-center gap-2 rounded-full bg-primary/10 px-3 py-2 text-xs font-bold text-primary">
-                  <CheckCircle2 className="w-4 h-4" />
-                  Saved profile restored
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label
-                    htmlFor="gender"
-                    className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1"
-                  >
-                    Gender
-                  </label>
-                  <select
-                    id="gender"
-                    value={gender}
-                    onChange={(e) =>
-                      setGender(e.target.value as "Male" | "Female")
-                    }
-                    className="lavida-input appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M5%207L10%2012L15%207%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%3C/svg%3E')] bg-[length:20px_20px] bg-[right_1rem_center] bg-no-repeat"
-                  >
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label
-                    htmlFor="age"
-                    className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1"
-                  >
-                    Age
-                  </label>
-                  <input
-                    id="age"
-                    type="number"
-                    min="1"
-                    max="99"
-                    placeholder="e.g. 28"
-                    value={age}
-                    onChange={(e) => setAge(e.target.value)}
-                    className="lavida-input"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label
-                  htmlFor="symptoms"
-                  className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1"
-                >
-                  Symptoms
-                </label>
-                <textarea
-                  id="symptoms"
-                  rows={4}
-                  placeholder="Describe your symptoms in detail (e.g., headache for 3 days, mild fever...)"
-                  value={symptoms}
-                  onChange={(e) => setSymptoms(e.target.value)}
-                  className="lavida-input resize-none min-h-[120px]"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="lavida-button text-lg py-4"
-              >
-                Analyze My Health <Activity className="w-5 h-5" />
-              </button>
-            </form>
-
-            <div className="bg-secondary/50 p-4 rounded-2xl flex items-start gap-4">
-              <div className="bg-white p-2 rounded-xl shadow-sm">
-                <UserCircle className="w-6 h-6 text-primary" />
-              </div>
-              <div className="space-y-1">
-                <h4 className="font-bold text-sm">Privacy First</h4>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Your data is stored securely. Log in to access your history
-                  from any device.
-                </p>
-              </div>
-            </div>
-          </div>
+          <SymptomForm
+            gender={gender}
+            age={age}
+            symptoms={symptoms}
+            loading={loading}
+            profileRestored={profileRestored}
+            onGenderChange={setGender}
+            onAgeChange={setAge}
+            onSymptomsChange={setSymptoms}
+            onSubmit={handleSubmit}
+          />
         )}
 
-        {(loading || result) && (
-          <div
-            className={cn(
-              "flex flex-col items-center justify-center space-y-8 pt-20 text-center transition-all duration-500",
-              result
-                ? "opacity-0 pointer-events-none -translate-y-2"
-                : "opacity-100 animate-in fade-in duration-500",
-            )}
-          >
-            <div className="relative">
-              <div className="absolute inset-0 bg-primary/20 rounded-full blur-3xl animate-pulse" />
-              <div className="relative w-48 h-48 rounded-full overflow-hidden border-8 border-white shadow-2xl">
-                {loadingPlaceholder && (
-                  <Image
-                    src={loadingPlaceholder.imageUrl}
-                    alt="Loading"
-                    fill
-                    className="object-cover transition-opacity duration-1000"
-                    data-ai-hint={loadingPlaceholder.imageHint}
-                  />
-                )}
-                <div className="absolute inset-0 flex items-center justify-center bg-primary/10 backdrop-blur-[2px]">
-                  <Loader2 className="w-16 h-16 text-primary animate-spin" />
-                </div>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <p className="text-2xl font-black text-primary animate-bounce">
-                Consulting AI Buddy...
-              </p>
-              <p className="text-muted-foreground font-medium">
-                This usually takes about 5 seconds.
-              </p>
-            </div>
-          </div>
+        {loading && <LoadingView />}
+
+        {error && <ErrorView message={error} onRetry={handleRestart} />}
+
+        {result && result.conditions && !showChat && !showHistory && !showTools && (
+          <ResultsView
+            conditions={result.conditions}
+            onStartChat={handleStartChat}
+            onRestart={handleRestart}
+          />
         )}
-
-        {error && (
-          <div className="space-y-6 animate-in slide-in-from-top-4 duration-300">
-            <div className="lavida-error-panel shadow-lg shadow-destructive/5">
-              <AlertCircle className="w-6 h-6 shrink-0" />
-              <div className="space-y-1">
-                <p className="font-bold">Something went wrong</p>
-                <p className="opacity-80">{error}</p>
-              </div>
-            </div>
-            <Button
-              onClick={handleRestart}
-              className="lavida-button bg-white !text-foreground border-2 border-border shadow-none hover:bg-secondary"
-            >
-              <RefreshCcw className="w-5 h-5" /> Try Again
-            </Button>
-          </div>
-        )}
-
-        {result &&
-          result.conditions &&
-          !showChat &&
-          !showHistory &&
-          !showTools && (
-            <section className="space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-1000">
-              <header className="flex items-center justify-between border-b-2 border-primary/10 pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="bg-primary/10 p-2 rounded-full">
-                    <CheckCircle2 className="w-6 h-6 text-primary" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-black tracking-tight">
-                      AI Analysis
-                    </h2>
-                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                      Urgency Assessment
-                    </p>
-                  </div>
-                </div>
-              </header>
-
-              <div className="flex flex-col gap-10">
-                {result.conditions.map((condition, idx) => {
-                  const style = getUrgencyStyles(condition.urgency);
-                  return (
-                    <div key={idx} className="group relative">
-                      <Card
-                        className={cn(
-                          "border-2 shadow-soft hover:shadow-xl transition-all overflow-hidden",
-                          style.card,
-                        )}
-                      >
-                        <CardHeader
-                          className={cn(
-                            "pb-3 flex-row items-center justify-between",
-                            style.header,
-                          )}
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-white text-foreground text-xs font-black shadow-sm">
-                              0{idx + 1}
-                            </span>
-                            <CardTitle className="text-xl font-bold tracking-tight">
-                              {condition.name}
-                            </CardTitle>
-                          </div>
-                          <Badge
-                            className={cn(
-                              "text-[10px] font-black uppercase tracking-widest px-3 py-1",
-                              style.badge,
-                            )}
-                          >
-                            {condition.urgency}
-                          </Badge>
-                        </CardHeader>
-                        <CardContent className="pt-5 space-y-5">
-                          <div className="space-y-1.5">
-                            <span className="text-[10px] uppercase font-black text-muted-foreground tracking-[0.15em] flex items-center gap-1.5">
-                              {style.icon} Potential Cause
-                            </span>
-                            <p className="text-base text-foreground/80 leading-relaxed font-medium">
-                              {condition.cause}
-                            </p>
-                          </div>
-
-                          <div className="p-4 bg-white/50 rounded-2xl border border-black/5">
-                            <span className="text-[10px] uppercase font-black text-foreground/60 tracking-[0.15em] flex items-center gap-1.5 mb-2">
-                              <ArrowRight className="w-3 h-3" /> Recommended
-                              Next Steps
-                            </span>
-                            <p className="text-sm font-bold text-foreground leading-relaxed italic">
-                              {condition.nextSteps}
-                            </p>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 pt-6">
-                <Button
-                  onClick={handleStartChat}
-                  className="lavida-button !bg-blue-600 !shadow-blue-600/20 py-6 text-xl"
-                >
-                  <MessageCircle className="w-6 h-6" /> Chat with LaVida
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={handleRestart}
-                  className="text-muted-foreground hover:text-primary transition-colors font-bold"
-                >
-                  <RefreshCcw className="w-4 h-4 mr-2" /> Start New Check
-                </Button>
-              </div>
-            </section>
-          )}
 
         {showChat && (
-          <section className="flex flex-col h-[650px] bg-white rounded-[2rem] shadow-2xl border border-border overflow-hidden animate-in zoom-in-95 duration-500">
-            <header className="px-6 py-5 bg-primary text-white flex items-center justify-between shadow-lg relative z-10">
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <Avatar className="w-12 h-12 border-2 border-white/40 shadow-sm">
-                    <AvatarFallback className="bg-white/10 text-white font-bold">
-                      <Bot className="w-6 h-6" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-400 border-2 border-primary rounded-full" />
-                </div>
-                <div>
-                  <h3 className="font-black text-lg leading-none">
-                    LaVida Buddy
-                  </h3>
-                  <p className="text-[10px] opacity-90 uppercase tracking-widest font-bold mt-1">
-                    Health Assistant • Online
-                  </p>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowChat(false)}
-                className="text-white hover:bg-white/10 h-10 px-4 rounded-full font-bold"
-              >
-                Close
-              </Button>
-            </header>
-
-            <ScrollArea className="flex-1 px-6 py-6 bg-[#FAFAFA]">
-              <div className="space-y-6">
-                {chatMessages.map((msg, idx) => (
-                  <div
-                    key={idx}
-                    className={cn(
-                      "flex w-full animate-in fade-in slide-in-from-bottom-2",
-                      msg.role === "user" ? "justify-end" : "justify-start",
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "max-w-[85%] p-4 rounded-2xl shadow-sm text-sm font-medium leading-relaxed",
-                        msg.role === "user"
-                          ? "bg-primary text-white rounded-tr-none shadow-primary/10"
-                          : "bg-white border border-border text-foreground rounded-tl-none shadow-soft",
-                      )}
-                    >
-                      {msg.content}
-                    </div>
-                  </div>
-                ))}
-                {chatLoading && (
-                  <div className="flex justify-start animate-in fade-in">
-                    <div className="bg-white border border-border p-4 rounded-2xl rounded-tl-none shadow-soft">
-                      <div className="flex gap-1">
-                        <span className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                        <span className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                        <span className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce" />
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <div ref={scrollRef} />
-              </div>
-            </ScrollArea>
-
-            <div className="p-6 bg-white border-t-2 border-secondary">
-              <form onSubmit={handleSendMessage} className="flex gap-3">
-                <input
-                  type="text"
-                  placeholder="Ask a follow-up question..."
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  className="flex-1 bg-secondary/80 rounded-2xl px-5 py-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all border-none"
-                  disabled={chatLoading}
-                />
-                <Button
-                  type="submit"
-                  size="icon"
-                  className="rounded-2xl h-14 w-14 bg-primary hover:bg-primary/90 shadow-glow transition-all"
-                  disabled={chatLoading || !chatInput.trim()}
-                >
-                  <Send className="w-6 h-6" />
-                </Button>
-              </form>
-            </div>
-          </section>
+          <HealthChat
+            messages={chatMessages}
+            loading={chatLoading}
+            input={chatInput}
+            onInputChange={setChatInput}
+            onSend={handleSendMessage}
+            onClose={() => setShowChat(false)}
+          />
         )}
 
         <footer className="mt-auto pt-12 space-y-4 text-center">
