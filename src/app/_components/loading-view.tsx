@@ -12,7 +12,7 @@ export function LoadingView() {
   );
 
   return (
-    <div className="flex flex-col items-center justify-center space-y-8 pt-20 text-center animate-in fade-in duration-500">
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
       <div className="relative">
         <div className="absolute inset-0 bg-primary/20 rounded-full blur-3xl animate-pulse" />
         <div className="relative w-48 h-48 rounded-full overflow-hidden border-8 border-white shadow-2xl">
@@ -30,7 +30,7 @@ export function LoadingView() {
           </div>
         </div>
       </div>
-      <div className="space-y-2">
+      <div className="space-y-2 mt-8">
         <p className="text-2xl font-black text-primary animate-bounce">
           {t.home.consulting}
         </p>

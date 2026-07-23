@@ -18,7 +18,6 @@ import { useUser, useFirestore, useDoc } from "@/firebase";
 import {
   collection,
   doc,
-  orderBy,
   query,
   serverTimestamp,
   setDoc,
@@ -62,12 +61,20 @@ export default function DashboardPage() {
     return query(
       collection(db, "history"),
       where("userId", "==", user.uid),
-      orderBy("timestamp", "desc"),
     );
   }, [user, db]);
 
-  const { data: historyItems, loading: historyLoading } =
+  const { data: rawHistoryItems, loading: historyLoading } =
     useCollection(historyQuery);
+
+  const historyItems = useMemo(() => {
+    if (!rawHistoryItems) return null;
+    return [...rawHistoryItems].sort((a, b) => {
+      const aTime = a.timestamp?.toDate?.()?.getTime?.() || 0;
+      const bTime = b.timestamp?.toDate?.()?.getTime?.() || 0;
+      return bTime - aTime;
+    });
+  }, [rawHistoryItems]);
 
   useEffect(() => {
     if (!profile) return;

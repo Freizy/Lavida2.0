@@ -35,7 +35,6 @@ import {
   serverTimestamp,
   query,
   where,
-  orderBy,
   limit,
 } from "firebase/firestore";
 import { useCollection } from "@/firebase";
@@ -97,13 +96,21 @@ export default function Home() {
     return query(
       collection(db, "history"),
       where("userId", "==", user.uid),
-      orderBy("timestamp", "desc"),
-      limit(15),
+      limit(50),
     );
   }, [user, db]);
 
-  const { data: historyItems, loading: historyLoading } =
+  const { data: rawHistoryItems, loading: historyLoading } =
     useCollection(historyQuery);
+
+  const historyItems = useMemo(() => {
+    if (!rawHistoryItems) return null;
+    return [...rawHistoryItems].sort((a, b) => {
+      const aTime = a.timestamp?.toDate?.()?.getTime?.() || 0;
+      const bTime = b.timestamp?.toDate?.()?.getTime?.() || 0;
+      return bTime - aTime;
+    });
+  }, [rawHistoryItems]);
 
   useEffect(() => {
     setCurrentYear(new Date().getFullYear());
@@ -186,6 +193,7 @@ export default function Home() {
         age: ageNum,
         symptoms: symptoms.trim(),
       });
+      setLoading(false);
       setResult(response);
 
       if (user && db) {
@@ -213,9 +221,8 @@ export default function Home() {
         });
       }
     } catch (err: any) {
-      setError(err.message || "Oops! Something went wrong. Please try again.");
-    } finally {
       setLoading(false);
+      setError(err.message || "Oops! Something went wrong. Please try again.");
     }
   };
 
