@@ -31,38 +31,39 @@ export type Medication = {
 export function useMedications() {
   const db = useFirestore();
   const { user } = useUser();
+  const uid = user?.uid ?? null;
 
   const medicationsRef = useMemo(() => {
-    if (!db || !user) return null;
+    if (!db || !uid) return null;
     return collection(db, "medications");
-  }, [db, user]);
+  }, [db, uid]);
 
   const queryRef = useMemo(() => {
-    if (!medicationsRef || !user) return null;
-    return query(medicationsRef, where("userId", "==", user.uid));
-  }, [medicationsRef, user]);
+    if (!medicationsRef || !uid) return null;
+    return query(medicationsRef, where("userId", "==", uid));
+  }, [medicationsRef, uid]);
 
   const { data: medications, loading } = useCollection(queryRef);
 
   const addMedication = useCallback(
     async (med: Omit<Medication, "id" | "createdAt" | "userId">) => {
-      if (!medicationsRef || !user) return;
+      if (!medicationsRef || !uid) return;
       await addDoc(medicationsRef, {
         ...med,
-        userId: user.uid,
+        userId: uid,
         createdAt: serverTimestamp(),
       });
     },
-    [medicationsRef, user]
+    [medicationsRef, uid]
   );
 
   const updateMedication = useCallback(
     async (id: string, updates: Partial<Medication>) => {
-      if (!db || !user) return;
+      if (!db) return;
       const docRef = doc(db, "medications", id);
       await updateDoc(docRef, updates);
     },
-    [db, user]
+    [db]
   );
 
   const deleteMedication = useCallback(

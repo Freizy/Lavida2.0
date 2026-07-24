@@ -28,29 +28,30 @@ export type Reminder = {
 export function useReminders() {
   const db = useFirestore();
   const { user } = useUser();
+  const uid = user?.uid ?? null;
 
   const remindersRef = useMemo(() => {
-    if (!db || !user) return null;
+    if (!db || !uid) return null;
     return collection(db, "reminders");
-  }, [db, user]);
+  }, [db, uid]);
 
   const queryRef = useMemo(() => {
-    if (!remindersRef || !user) return null;
-    return query(remindersRef, where("userId", "==", user.uid));
-  }, [remindersRef, user]);
+    if (!remindersRef || !uid) return null;
+    return query(remindersRef, where("userId", "==", uid));
+  }, [remindersRef, uid]);
 
   const { data: reminders, loading } = useCollection(queryRef);
 
   const addReminder = useCallback(
     async (reminder: Omit<Reminder, "id" | "createdAt" | "userId">) => {
-      if (!remindersRef || !user) return;
+      if (!remindersRef || !uid) return;
       await addDoc(remindersRef, {
         ...reminder,
-        userId: user.uid,
+        userId: uid,
         createdAt: serverTimestamp(),
       });
     },
-    [remindersRef, user]
+    [remindersRef, uid]
   );
 
   const toggleReminder = useCallback(

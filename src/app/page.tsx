@@ -85,20 +85,20 @@ export default function Home() {
   const { unreadCount } = useNotificationStore();
 
   const profileRef = useMemo(() => {
-    if (!user || !db) return null;
+    if (!user?.uid || !db) return null;
     return doc(db, "profiles", user.uid);
-  }, [user, db]);
+  }, [user?.uid, db]);
 
   const { data: profile } = useDoc(profileRef);
 
   const historyQuery = useMemo(() => {
-    if (!user || !db) return null;
+    if (!user?.uid || !db) return null;
     return query(
       collection(db, "history"),
       where("userId", "==", user.uid),
       limit(50),
     );
-  }, [user, db]);
+  }, [user?.uid, db]);
 
   const { data: rawHistoryItems, loading: historyLoading } =
     useCollection(historyQuery);
@@ -131,6 +131,34 @@ export default function Home() {
 
     setProfileRestored(hasSavedGender || hasSavedAge);
   }, [profile]);
+
+  const persistProfile = async (updates: Record<string, any>) => {
+    if (!user || !db) return;
+    await setDoc(
+      doc(db, "profiles", user.uid),
+      {
+        userId: user.uid,
+        displayName: user.displayName || null,
+        email: user.email || null,
+        photoURL: user.photoURL || null,
+        ...updates,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true },
+    );
+  };
+
+  const handleGenderChange = async (g: "Male" | "Female") => {
+    setGender(g);
+    await persistProfile({ gender: g });
+  };
+
+  const handleAgeChange = async (a: string) => {
+    setAge(a);
+    if (a && !isNaN(parseInt(a))) {
+      await persistProfile({ age: parseInt(a) });
+    }
+  };
 
   const handleLogin = async () => {
     if (!authEnabled || !auth || !db) {
@@ -197,19 +225,7 @@ export default function Home() {
       setResult(response);
 
       if (user && db) {
-        await setDoc(
-          doc(db, "profiles", user.uid),
-          {
-            userId: user.uid,
-            gender,
-            age: ageNum,
-            displayName: user.displayName || null,
-            email: user.email || null,
-            photoURL: user.photoURL || null,
-            updatedAt: serverTimestamp(),
-          },
-          { merge: true },
-        );
+        await persistProfile({ gender, age: ageNum });
 
         await addDoc(collection(db, "history"), {
           userId: user.uid,
@@ -442,8 +458,8 @@ export default function Home() {
             symptoms={symptoms}
             loading={loading}
             profileRestored={profileRestored}
-            onGenderChange={setGender}
-            onAgeChange={setAge}
+            onGenderChange={handleGenderChange}
+            onAgeChange={handleAgeChange}
             onSymptomsChange={setSymptoms}
             onSubmit={handleSubmit}
           />

@@ -28,32 +28,33 @@ export type NotificationItem = {
 export function useNotificationStore() {
   const db = useFirestore();
   const { user } = useUser();
+  const uid = user?.uid ?? null;
 
   const notificationsRef = useMemo(() => {
-    if (!db || !user) return null;
+    if (!db || !uid) return null;
     return collection(db, "notifications");
-  }, [db, user]);
+  }, [db, uid]);
 
   const queryRef = useMemo(() => {
-    if (!notificationsRef || !user) return null;
-    return query(notificationsRef, where("userId", "==", user.uid));
-  }, [notificationsRef, user]);
+    if (!notificationsRef || !uid) return null;
+    return query(notificationsRef, where("userId", "==", uid));
+  }, [notificationsRef, uid]);
 
   const { data: notifications, loading } = useCollection(queryRef);
 
   const addNotification = useCallback(
     async (title: string, body: string, type: NotificationItem["type"] = "info") => {
-      if (!notificationsRef || !user) return;
+      if (!notificationsRef || !uid) return;
       await addDoc(notificationsRef, {
         title,
         body,
         type,
         read: false,
-        userId: user.uid,
+        userId: uid,
         createdAt: serverTimestamp(),
       });
     },
-    [notificationsRef, user]
+    [notificationsRef, uid]
   );
 
   const markAsRead = useCallback(
@@ -96,7 +97,10 @@ export function useNotificationStore() {
     await batch.commit();
   }, [db, notifications]);
 
-  const unreadCount = (notifications || []).filter((n: NotificationItem) => !n.read).length;
+  const unreadCount = useMemo(
+    () => (notifications || []).filter((n: NotificationItem) => !n.read).length,
+    [notifications]
+  );
 
   return {
     notifications: notifications || [],
