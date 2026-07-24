@@ -3,6 +3,7 @@ import './globals.css';
 import { FirebaseClientProvider } from '@/firebase';
 import { ThemeProvider } from '@/lib/theme-provider';
 import { I18nProvider } from '@/lib/i18n';
+import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
   title: 'LaVida Health Buddy',
@@ -26,6 +27,7 @@ export default function RootLayout({
           <I18nProvider>
             <FirebaseClientProvider>
               {children}
+              <Toaster />
             </FirebaseClientProvider>
           </I18nProvider>
         </ThemeProvider>

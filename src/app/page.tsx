@@ -40,6 +40,7 @@ import {
 import { useCollection } from "@/firebase";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
+import { useToast } from "@/hooks/use-toast";
 
 import { SymptomForm } from "./_components/symptom-form";
 import { ConditionCard } from "./_components/condition-card";
@@ -64,6 +65,7 @@ export default function Home() {
   const auth = useAuth();
   const authEnabled = isFirebaseAuthConfigured;
   const { t } = useI18n();
+  const { toast } = useToast();
 
   const [gender, setGender] = useState<"Male" | "Female">("Male");
   const [age, setAge] = useState<string>("");
@@ -148,16 +150,12 @@ export default function Home() {
     );
   };
 
-  const handleGenderChange = async (g: "Male" | "Female") => {
+  const handleGenderChange = (g: "Male" | "Female") => {
     setGender(g);
-    await persistProfile({ gender: g });
   };
 
-  const handleAgeChange = async (a: string) => {
+  const handleAgeChange = (a: string) => {
     setAge(a);
-    if (a && !isNaN(parseInt(a))) {
-      await persistProfile({ age: parseInt(a) });
-    }
   };
 
   const handleLogin = async () => {
@@ -225,7 +223,15 @@ export default function Home() {
       setResult(response);
 
       if (user && db) {
+        const isNewProfile = !profile?.gender && !profile?.age;
         await persistProfile({ gender, age: ageNum });
+
+        if (isNewProfile) {
+          toast({
+            title: "Profile saved",
+            description: "Your gender and age have been saved for future checkups.",
+          });
+        }
 
         await addDoc(collection(db, "history"), {
           userId: user.uid,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   CalendarClock,
@@ -25,6 +25,7 @@ import {
 } from "firebase/firestore";
 import { useCollection } from "@/firebase";
 import { useI18n } from "@/lib/i18n";
+import { useToast } from "@/hooks/use-toast";
 
 import { DashboardStats } from "./_components/dashboard-stats";
 import { HealthOverview } from "./_components/health-overview";
@@ -38,8 +39,10 @@ export default function DashboardPage() {
   const { user } = useUser();
   const db = useFirestore();
   const { t } = useI18n();
+  const { toast } = useToast();
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileStatus, setProfileStatus] = useState<string | null>(null);
+  const profileLoadedRef = useRef(false);
   const [profileForm, setProfileForm] = useState<{
     gender: "Male" | "Female";
     age: string;
@@ -49,20 +52,20 @@ export default function DashboardPage() {
   });
 
   const profileRef = useMemo(() => {
-    if (!user || !db) return null;
+    if (!user?.uid || !db) return null;
     return doc(db, "profiles", user.uid);
-  }, [user, db]);
+  }, [user?.uid, db]);
 
   const { data: profile } = useDoc(profileRef);
 
   const historyQuery = useMemo(() => {
-    if (!user || !db) return null;
+    if (!user?.uid || !db) return null;
 
     return query(
       collection(db, "history"),
       where("userId", "==", user.uid),
     );
-  }, [user, db]);
+  }, [user?.uid, db]);
 
   const { data: rawHistoryItems, loading: historyLoading } =
     useCollection(historyQuery);
@@ -77,8 +80,9 @@ export default function DashboardPage() {
   }, [rawHistoryItems]);
 
   useEffect(() => {
-    if (!profile) return;
+    if (!profile || profileLoadedRef.current) return;
 
+    profileLoadedRef.current = true;
     setProfileForm({
       gender: profile.gender === "Female" ? "Female" : "Male",
       age: profile.age ? profile.age.toString() : "",
@@ -99,27 +103,39 @@ export default function DashboardPage() {
   const saveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!user || !db || !profileRef) return;
+    if (!user?.uid || !db) return;
+
+    const genderVal = profileForm.gender;
+    const ageVal = profileForm.age ? Number(profileForm.age) : null;
 
     setSavingProfile(true);
     setProfileStatus(null);
 
     try {
+      const ref = doc(db, "profiles", user.uid);
       await setDoc(
-        profileRef,
+        ref,
         {
           userId: user.uid,
-          gender: profileForm.gender,
-          age: profileForm.age ? Number(profileForm.age) : null,
+          gender: genderVal,
+          age: ageVal,
           updatedAt: serverTimestamp(),
         },
         { merge: true },
       );
 
-      setProfileStatus(t.dashboard.saved);
+      setProfileStatus("Profile saved successfully");
+      toast({
+        title: "Profile updated",
+        description: "Your gender and age have been saved successfully.",
+      });
     } catch (error) {
       console.error("Failed to save profile", error);
-      setProfileStatus(t.dashboard.saveError);
+      setProfileStatus("Failed to save profile. Please try again.");
+      toast({
+        title: "Error",
+        description: "Failed to save profile. Please try again.",
+      });
     } finally {
       setSavingProfile(false);
     }
@@ -232,11 +248,11 @@ export default function DashboardPage() {
                     className="rounded-full"
                     disabled={savingProfile}
                   >
-                    {savingProfile ? t.dashboard.saving : t.dashboard.saveProfile}
+                    {savingProfile ? "Saving..." : t.dashboard.saveProfile}
                   </Button>
 
                   {profileStatus ? (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-green-600 font-medium">
                       {profileStatus}
                     </p>
                   ) : null}
