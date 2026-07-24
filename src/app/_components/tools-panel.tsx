@@ -7,6 +7,7 @@ import {
   Pill,
   ClipboardList,
   Bell,
+  History,
   Plus,
   Trash2,
   Power,
@@ -26,11 +27,15 @@ import { generateHealthReport } from "@/lib/generate-report";
 
 type ToolsPanelProps = {
   onWellnessAssistant: () => void;
+  onOpenNotifications: () => void;
+  onOpenHistory: () => void;
   onClose: () => void;
 };
 
 export function ToolsPanel({
   onWellnessAssistant,
+  onOpenNotifications,
+  onOpenHistory,
   onClose,
 }: ToolsPanelProps) {
   const { t } = useI18n();
@@ -130,6 +135,56 @@ export function ToolsPanel({
                   {reminders.filter((r: any) => r.active).length} active
                 </Badge>
               )}
+            </CardContent>
+          </Card>
+
+          <Card
+            role="button"
+            tabIndex={0}
+            onClick={onOpenNotifications}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onOpenNotifications();
+              }
+            }}
+            className="overflow-hidden cursor-pointer transition-all hover:border-primary/50 hover:shadow-md md:hidden"
+          >
+            <CardContent className="p-4 flex flex-col items-center text-center gap-3">
+              <div className="p-3 rounded-xl bg-rose-500/10 text-rose-600">
+                <Bell className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold">Notifications</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  View alerts and reminders
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card
+            role="button"
+            tabIndex={0}
+            onClick={onOpenHistory}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onOpenHistory();
+              }
+            }}
+            className="overflow-hidden cursor-pointer transition-all hover:border-primary/50 hover:shadow-md md:hidden"
+          >
+            <CardContent className="p-4 flex flex-col items-center text-center gap-3">
+              <div className="p-3 rounded-xl bg-cyan-500/10 text-cyan-600">
+                <History className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold">History</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  View past symptom checkups
+                </p>
+              </div>
             </CardContent>
           </Card>
 

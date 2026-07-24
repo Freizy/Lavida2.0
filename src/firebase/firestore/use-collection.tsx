@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   Query,
   onSnapshot,
@@ -12,20 +12,32 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
   const [data, setData] = useState<T[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const unsubRef = useRef<(() => void) | null>(null);
+  const queryRef = useRef<Query<T> | null>(null);
 
   useEffect(() => {
+    if (query === queryRef.current) return;
+    queryRef.current = query;
+
+    if (unsubRef.current) {
+      unsubRef.current();
+      unsubRef.current = null;
+    }
+
     if (!query) {
+      setData(null);
       setLoading(false);
       return;
     }
 
     setLoading(true);
+
     const unsubscribe = onSnapshot(
       query,
       (snapshot: QuerySnapshot<T>) => {
-        const items = snapshot.docs.map((doc) => ({
-          ...doc.data(),
-          id: doc.id,
+        const items = snapshot.docs.map((d) => ({
+          ...d.data(),
+          id: d.id,
         }));
         setData(items);
         setLoading(false);
@@ -37,8 +49,13 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
       }
     );
 
-    return () => unsubscribe();
-  }, [query]);
+    unsubRef.current = unsubscribe;
+
+    return () => {
+      unsubscribe();
+      unsubRef.current = null;
+    };
+  });
 
   return { data, loading, error };
 }

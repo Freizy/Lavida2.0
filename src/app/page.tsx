@@ -317,22 +317,22 @@ export default function Home() {
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-background text-foreground selection:bg-primary/20">
-      <nav className="w-full max-w-2xl flex items-center justify-between p-6 md:px-0">
+      <nav className="w-full max-w-2xl flex items-center justify-between p-4 md:p-6 md:px-0">
         <div
           className="flex items-center gap-2 group cursor-pointer"
           onClick={handleRestart}
         >
           <div className="bg-primary p-2 rounded-xl shadow-glow transition-transform group-hover:scale-110">
-            <Stethoscope className="w-6 h-6 text-white" />
+            <Stethoscope className="w-5 h-5 md:w-6 md:h-6 text-white" />
           </div>
-          <span className="font-bold text-2xl tracking-tight">LaVida</span>
+          <span className="font-bold text-xl md:text-2xl tracking-tight">LaVida</span>
         </div>
         <div className="flex items-center gap-3">
           <ThemeToggle />
           <LanguageToggle />
           {user ? (
             <>
-              <div className="relative">
+              <div className="relative hidden md:block">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -358,7 +358,7 @@ export default function Home() {
                   setShowTools(false);
                 }}
                 className={cn(
-                  "rounded-xl transition-colors",
+                  "rounded-xl transition-colors hidden md:flex",
                   showHistory && "bg-primary/10 text-primary",
                 )}
               >
@@ -452,6 +452,14 @@ export default function Home() {
                   },
                 ]);
               }
+            }}
+            onOpenNotifications={() => {
+              setShowTools(false);
+              setShowNotifications(true);
+            }}
+            onOpenHistory={() => {
+              setShowTools(false);
+              setShowHistory(true);
             }}
             onClose={() => setShowTools(false)}
           />
