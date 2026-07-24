@@ -72,7 +72,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
                       {n.body}
                     </p>
                     <p className="text-[10px] text-muted-foreground/60 mt-1">
-                      {n.time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      {n.createdAt?.toDate?.().toLocaleTimeString?.([], { hour: "2-digit", minute: "2-digit" }) || "Just now"}
                     </p>
                   </div>
                   <div className="flex items-center gap-1">

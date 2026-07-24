@@ -1,6 +1,18 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useMemo, useCallback } from "react";
+import {
+  collection,
+  doc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  serverTimestamp,
+  query,
+  where,
+} from "firebase/firestore";
+import { useFirestore, useUser } from "@/firebase";
+import { useCollection } from "@/firebase";
 
 export type Medication = {
   id: string;
@@ -12,75 +24,71 @@ export type Medication = {
   startDate: string;
   endDate?: string;
   active: boolean;
-  createdAt: Date;
+  createdAt: any;
+  userId: string;
 };
 
-const STORAGE_KEY = "lavidamedications";
-
 export function useMedications() {
-  const [medications, setMedications] = useState<Medication[]>([]);
+  const db = useFirestore();
+  const { user } = useUser();
 
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved).map((m: any) => ({
-          ...m,
-          createdAt: new Date(m.createdAt),
-        }));
-        setMedications(parsed);
-      } catch {}
-    }
-  }, []);
+  const medicationsRef = useMemo(() => {
+    if (!db || !user) return null;
+    return collection(db, "medications");
+  }, [db, user]);
 
-  const save = useCallback((items: Medication[]) => {
-    setMedications(items);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  }, []);
+  const queryRef = useMemo(() => {
+    if (!medicationsRef || !user) return null;
+    return query(medicationsRef, where("userId", "==", user.uid));
+  }, [medicationsRef, user]);
+
+  const { data: medications, loading } = useCollection(queryRef);
 
   const addMedication = useCallback(
-    (med: Omit<Medication, "id" | "createdAt">) => {
-      const newItem: Medication = {
+    async (med: Omit<Medication, "id" | "createdAt" | "userId">) => {
+      if (!medicationsRef || !user) return;
+      await addDoc(medicationsRef, {
         ...med,
-        id: Date.now().toString(),
-        createdAt: new Date(),
-      };
-      save([newItem, ...medications]);
-      return newItem;
+        userId: user.uid,
+        createdAt: serverTimestamp(),
+      });
     },
-    [medications, save]
+    [medicationsRef, user]
   );
 
   const updateMedication = useCallback(
-    (id: string, updates: Partial<Medication>) => {
-      save(medications.map((m) => (m.id === id ? { ...m, ...updates } : m)));
+    async (id: string, updates: Partial<Medication>) => {
+      if (!db || !user) return;
+      const docRef = doc(db, "medications", id);
+      await updateDoc(docRef, updates);
     },
-    [medications, save]
+    [db, user]
   );
 
   const deleteMedication = useCallback(
-    (id: string) => {
-      save(medications.filter((m) => m.id !== id));
+    async (id: string) => {
+      if (!db) return;
+      const docRef = doc(db, "medications", id);
+      await deleteDoc(docRef);
     },
-    [medications, save]
+    [db]
   );
 
   const toggleActive = useCallback(
-    (id: string) => {
-      save(
-        medications.map((m) => (m.id === id ? { ...m, active: !m.active } : m))
-      );
+    async (id: string, currentActive: boolean) => {
+      await updateMedication(id, { active: !currentActive });
     },
-    [medications, save]
+    [updateMedication]
   );
 
-  const activeMedications = medications.filter((m) => m.active);
-  const inactiveMedications = medications.filter((m) => !m.active);
+  const activeMedications = (medications || []).filter((m: Medication) => m.active);
+  const inactiveMedications = (medications || []).filter((m: Medication) => !m.active);
 
   return {
-    medications,
+    medications: medications || [],
     activeMedications,
     inactiveMedications,
+    loading,
     addMedication,
     updateMedication,
     deleteMedication,

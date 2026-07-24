@@ -1,83 +1,107 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useMemo, useCallback } from "react";
+import {
+  collection,
+  doc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  serverTimestamp,
+  query,
+  where,
+  writeBatch,
+} from "firebase/firestore";
+import { useFirestore, useUser } from "@/firebase";
+import { useCollection } from "@/firebase";
 
-type NotificationItem = {
+export type NotificationItem = {
   id: string;
   title: string;
   body: string;
-  time: Date;
   read: boolean;
   type: "reminder" | "alert" | "info";
+  createdAt: any;
+  userId: string;
 };
 
-const STORAGE_KEY = "lavidanotifications";
-
 export function useNotificationStore() {
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const db = useFirestore();
+  const { user } = useUser();
 
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved).map((n: any) => ({
-          ...n,
-          time: new Date(n.time),
-        }));
-        setNotifications(parsed);
-      } catch {}
-    }
-  }, []);
+  const notificationsRef = useMemo(() => {
+    if (!db || !user) return null;
+    return collection(db, "notifications");
+  }, [db, user]);
 
-  const save = useCallback((items: NotificationItem[]) => {
-    setNotifications(items);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  }, []);
+  const queryRef = useMemo(() => {
+    if (!notificationsRef || !user) return null;
+    return query(notificationsRef, where("userId", "==", user.uid));
+  }, [notificationsRef, user]);
+
+  const { data: notifications, loading } = useCollection(queryRef);
 
   const addNotification = useCallback(
-    (title: string, body: string, type: NotificationItem["type"] = "info") => {
-      const item: NotificationItem = {
-        id: Date.now().toString(),
+    async (title: string, body: string, type: NotificationItem["type"] = "info") => {
+      if (!notificationsRef || !user) return;
+      await addDoc(notificationsRef, {
         title,
         body,
-        time: new Date(),
-        read: false,
         type,
-      };
-      save([item, ...notifications]);
+        read: false,
+        userId: user.uid,
+        createdAt: serverTimestamp(),
+      });
     },
-    [notifications, save]
+    [notificationsRef, user]
   );
 
   const markAsRead = useCallback(
-    (id: string) => {
-      save(
-        notifications.map((n) => (n.id === id ? { ...n, read: true } : n))
-      );
+    async (id: string) => {
+      if (!db) return;
+      const docRef = doc(db, "notifications", id);
+      await updateDoc(docRef, { read: true });
     },
-    [notifications, save]
+    [db]
   );
 
-  const markAllAsRead = useCallback(() => {
-    save(notifications.map((n) => ({ ...n, read: true })));
-  }, [notifications, save]);
+  const markAllAsRead = useCallback(async () => {
+    if (!db || !notifications) return;
+    const batch = writeBatch(db);
+    notifications.forEach((n: NotificationItem) => {
+      if (!n.read) {
+        const docRef = doc(db, "notifications", n.id);
+        batch.update(docRef, { read: true });
+      }
+    });
+    await batch.commit();
+  }, [db, notifications]);
 
   const clearNotification = useCallback(
-    (id: string) => {
-      save(notifications.filter((n) => n.id !== id));
+    async (id: string) => {
+      if (!db) return;
+      const docRef = doc(db, "notifications", id);
+      await deleteDoc(docRef);
     },
-    [notifications, save]
+    [db]
   );
 
-  const clearAll = useCallback(() => {
-    save([]);
-  }, [save]);
+  const clearAll = useCallback(async () => {
+    if (!db || !notifications) return;
+    const batch = writeBatch(db);
+    notifications.forEach((n: NotificationItem) => {
+      const docRef = doc(db, "notifications", n.id);
+      batch.delete(docRef);
+    });
+    await batch.commit();
+  }, [db, notifications]);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const unreadCount = (notifications || []).filter((n: NotificationItem) => !n.read).length;
 
   return {
-    notifications,
+    notifications: notifications || [],
     unreadCount,
+    loading,
     addNotification,
     markAsRead,
     markAllAsRead,
