@@ -1,6 +1,6 @@
 "use client";
 
-import { History, Calendar as CalendarIcon, Activity, LogIn } from "lucide-react";
+import { History, Calendar as CalendarIcon, Activity, LogIn, AlertTriangle } from "lucide-react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -21,6 +21,7 @@ type HistoryPanelProps = {
   items: HistoryItem[] | undefined;
   loading: boolean;
   isLoggedIn: boolean;
+  error?: string | null;
   onSelect: (item: HistoryItem) => void;
   onClose: () => void;
   onSignIn: () => void;
@@ -30,6 +31,7 @@ export function HistoryPanel({
   items,
   loading,
   isLoggedIn,
+  error,
   onSelect,
   onClose,
   onSignIn,
@@ -63,11 +65,17 @@ export function HistoryPanel({
                 <LogIn className="w-4 h-4 mr-2" /> {t.nav.signIn}
               </Button>
             </div>
+          ) : error ? (
+            <div className="text-center py-20 space-y-3">
+              <AlertTriangle className="w-12 h-12 text-destructive/40 mx-auto" />
+              <p className="text-destructive font-medium">Failed to load history</p>
+              <p className="text-sm text-muted-foreground max-w-xs mx-auto">{error}</p>
+            </div>
           ) : loading ? (
             <div className="flex justify-center py-20">
               <Loader2 className="w-8 h-8 animate-spin text-primary/40" />
             </div>
-          ) : items?.length === 0 ? (
+          ) : !items || items.length === 0 ? (
             <div className="text-center py-20 space-y-3">
               <Activity className="w-12 h-12 text-muted-foreground/20 mx-auto" />
               <p className="text-muted-foreground">

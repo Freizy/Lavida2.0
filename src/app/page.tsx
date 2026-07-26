@@ -102,7 +102,7 @@ export default function Home() {
     );
   }, [user?.uid, db]);
 
-  const { data: rawHistoryItems, loading: historyLoading } =
+  const { data: rawHistoryItems, loading: historyLoading, error: historyError } =
     useCollection(historyQuery);
 
   const historyItems = useMemo(() => {
@@ -432,6 +432,7 @@ export default function Home() {
             items={historyItems}
             loading={historyLoading}
             isLoggedIn={!!user}
+            error={historyError?.message}
             onSelect={selectHistoryItem}
             onClose={() => setShowHistory(false)}
             onSignIn={handleLogin}
