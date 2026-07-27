@@ -31,8 +31,8 @@ export function useNotifications() {
     (title: string, options?: NotificationOptions) => {
       if (permission !== "granted") return null;
       return new Notification(title, {
-        icon: "/favicon.ico",
-        badge: "/favicon.ico",
+        icon: "/icon.svg",
+        badge: "/icon.svg",
         ...options,
       });
     },

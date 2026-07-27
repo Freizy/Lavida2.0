@@ -2,8 +2,17 @@
 
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Minus, HeartPulse } from "lucide-react";
+import {
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  HeartPulse,
+} from "lucide-react";
 import { useI18n } from "@/lib/i18n";
+import {
+  calculateHealthScore,
+  type ScoredCheckup,
+} from "@/lib/health-score";
 
 type HistoryItem = {
   conditions: { urgency: string }[];
@@ -14,74 +23,40 @@ type HealthScoreProps = {
   historyItems: HistoryItem[];
 };
 
-function calculateScore(items: HistoryItem[]): {
-  score: number;
-  trend: "up" | "down" | "stable";
-  scoreLabel: string;
-  color: string;
-} {
-  if (items.length === 0) {
-    return { score: 0, trend: "stable", scoreLabel: "noData", color: "text-muted-foreground" };
-  }
+const TREND_ICON = {
+  improving: TrendingUp,
+  declining: TrendingDown,
+  stable: Minus,
+} as const;
 
-  let totalPoints = 0;
-  let count = 0;
-
-  items.forEach((item, index) => {
-    const recencyWeight = Math.max(0.3, 1 - index * 0.1);
-    const urgencyScore = item.conditions.reduce((sum, c) => {
-      switch (c.urgency) {
-        case "critical": return sum + 10;
-        case "high": return sum + 25;
-        case "medium": return sum + 50;
-        case "low": return sum + 80;
-        default: return sum + 50;
-      }
-    }, 0) / Math.max(item.conditions.length, 1);
-
-    totalPoints += urgencyScore * recencyWeight;
-    count++;
-  });
-
-  const avgScore = count > 0 ? totalPoints / count : 50;
-  const score = Math.round(Math.min(100, Math.max(0, avgScore)));
-
-  let trend: "up" | "down" | "stable" = "stable";
-  if (items.length >= 2) {
-    const recent = items[0].conditions.reduce((s, c) => {
-      switch (c.urgency) { case "critical": return s + 10; case "high": return s + 25; case "medium": return s + 50; default: return s + 80; }
-    }, 0) / Math.max(items[0].conditions.length, 1);
-    const older = items[1].conditions.reduce((s, c) => {
-      switch (c.urgency) { case "critical": return s + 10; case "high": return s + 25; case "medium": return s + 50; default: return s + 80; }
-    }, 0) / Math.max(items[1].conditions.length, 1);
-    if (recent > older + 5) trend = "up";
-    else if (recent < older - 5) trend = "down";
-  }
-
-  let scoreLabel = "good";
-  let color = "text-green-500";
-  if (score < 30) { scoreLabel = "needsAttention"; color = "text-red-500"; }
-  else if (score < 60) { scoreLabel = "fair"; color = "text-amber-500"; }
-  else if (score < 80) { scoreLabel = "good"; color = "text-green-500"; }
-  else { scoreLabel = "excellent"; color = "text-emerald-500"; }
-
-  return { score, trend, scoreLabel, color };
-}
+const TREND_COLOR = {
+  improving: "text-green-500",
+  declining: "text-red-500",
+  stable: "text-muted-foreground",
+} as const;
 
 export function HealthScore({ historyItems }: HealthScoreProps) {
   const { t } = useI18n();
-  const { score, trend, scoreLabel, color } = useMemo(
-    () => calculateScore(historyItems),
-    [historyItems]
-  );
 
-  const labelMap: Record<string, string> = {
-    noData: t.healthScore.noData,
-    good: t.healthScore.good,
+  const { score, band, trend, color, sampleSize } = useMemo(() => {
+    const checkups: ScoredCheckup[] = historyItems.map((item) => ({
+      conditions: item.conditions.map((c) => ({
+        urgency: c.urgency as ScoredCheckup["conditions"][number]["urgency"],
+      })),
+      timestamp: item.timestamp?.toDate() ?? null,
+    }));
+    return calculateHealthScore(checkups);
+  }, [historyItems]);
+
+  const bandLabel: Record<string, string> = {
+    critical: t.healthScore.needsAttention,
+    poor: t.healthScore.needsAttention,
     fair: t.healthScore.fair,
-    needsAttention: t.healthScore.needsAttention,
+    good: t.healthScore.good,
     excellent: t.healthScore.excellent,
   };
+
+  const TrendIcon = TREND_ICON[trend];
 
   const circumference = 2 * Math.PI * 45;
   const strokeDashoffset = circumference - (score / 100) * circumference;
@@ -90,12 +65,16 @@ export function HealthScore({ historyItems }: HealthScoreProps) {
     <Card className="border-primary/10">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base">
-          <HeartPulse className="w-4 h-4 text-primary" /> {t.healthScore.title}
+          <HeartPulse className="w-4 h-4 text-primary" />{" "}
+          {t.healthScore.title}
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col items-center py-4">
         <div className="relative w-32 h-32">
-          <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+          <svg
+            className="w-full h-full -rotate-90"
+            viewBox="0 0 100 100"
+          >
             <circle
               cx="50"
               cy="50"
@@ -120,19 +99,24 @@ export function HealthScore({ historyItems }: HealthScoreProps) {
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span className={`text-3xl font-black ${color}`}>{score}</span>
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">/ 100</span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+              / 100
+            </span>
           </div>
         </div>
 
         <div className="mt-4 text-center space-y-1">
           <div className="flex items-center justify-center gap-2">
-            {trend === "up" && <TrendingUp className="w-4 h-4 text-green-500" />}
-            {trend === "down" && <TrendingDown className="w-4 h-4 text-red-500" />}
-            {trend === "stable" && <Minus className="w-4 h-4 text-muted-foreground" />}
-            <span className={`text-sm font-bold ${color}`}>{labelMap[scoreLabel]}</span>
+            <TrendIcon
+              className={`w-4 h-4 ${TREND_COLOR[trend]}`}
+            />
+            <span className={`text-sm font-bold ${color}`}>
+              {bandLabel[band]}
+            </span>
           </div>
           <p className="text-xs text-muted-foreground">
-            {t.healthScore.basedOn} {historyItems.length} {t.healthScore.checkups}
+            {t.healthScore.basedOn} {sampleSize}{" "}
+            {t.healthScore.checkups}
           </p>
         </div>
       </CardContent>

@@ -8,6 +8,14 @@ import { Toaster } from '@/components/ui/toaster';
 export const metadata: Metadata = {
   title: 'LaVida Health Buddy',
   description: 'AI-powered symptom checker for quick health insights.',
+  icons: {
+    icon: '/icon.svg',
+  },
+  openGraph: {
+    title: 'LaVida Health Buddy',
+    description: 'AI-powered symptom checker for quick health insights.',
+    type: 'website',
+  },
 };
 
 export default function RootLayout({
