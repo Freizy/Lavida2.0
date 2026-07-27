@@ -10,6 +10,7 @@ import {
   serverTimestamp,
   query,
   where,
+  type Timestamp,
 } from "firebase/firestore";
 import { useFirestore, useUser } from "@/firebase";
 import { useCollection } from "@/firebase";
@@ -24,7 +25,7 @@ export type Medication = {
   startDate: string;
   endDate?: string;
   active: boolean;
-  createdAt: any;
+  createdAt: Timestamp;
   userId: string;
 };
 
@@ -43,16 +44,22 @@ export function useMedications() {
     return query(medicationsRef, where("userId", "==", uid));
   }, [medicationsRef, uid]);
 
-  const { data: medications, loading } = useCollection(queryRef);
+  const { data: rawMedications, loading } = useCollection(queryRef);
+  const medications = useMemo(() => (rawMedications || []) as Medication[], [rawMedications]);
 
   const addMedication = useCallback(
     async (med: Omit<Medication, "id" | "createdAt" | "userId">) => {
       if (!medicationsRef || !uid) return;
-      await addDoc(medicationsRef, {
-        ...med,
-        userId: uid,
-        createdAt: serverTimestamp(),
-      });
+      try {
+        await addDoc(medicationsRef, {
+          ...med,
+          userId: uid,
+          createdAt: serverTimestamp(),
+        });
+      } catch (err) {
+        console.error("[LaVida] Failed to add medication:", err);
+        throw err;
+      }
     },
     [medicationsRef, uid]
   );
@@ -60,8 +67,13 @@ export function useMedications() {
   const updateMedication = useCallback(
     async (id: string, updates: Partial<Medication>) => {
       if (!db) return;
-      const docRef = doc(db, "medications", id);
-      await updateDoc(docRef, updates);
+      try {
+        const docRef = doc(db, "medications", id);
+        await updateDoc(docRef, updates);
+      } catch (err) {
+        console.error("[LaVida] Failed to update medication:", err);
+        throw err;
+      }
     },
     [db]
   );
@@ -69,8 +81,13 @@ export function useMedications() {
   const deleteMedication = useCallback(
     async (id: string) => {
       if (!db) return;
-      const docRef = doc(db, "medications", id);
-      await deleteDoc(docRef);
+      try {
+        const docRef = doc(db, "medications", id);
+        await deleteDoc(docRef);
+      } catch (err) {
+        console.error("[LaVida] Failed to delete medication:", err);
+        throw err;
+      }
     },
     [db]
   );
@@ -82,11 +99,11 @@ export function useMedications() {
     [updateMedication]
   );
 
-  const activeMedications = (medications || []).filter((m: Medication) => m.active);
-  const inactiveMedications = (medications || []).filter((m: Medication) => !m.active);
+  const activeMedications = medications.filter((m) => m.active);
+  const inactiveMedications = medications.filter((m) => !m.active);
 
   return {
-    medications: medications || [],
+    medications,
     activeMedications,
     inactiveMedications,
     loading,

@@ -18,14 +18,14 @@ const languages = [
 ];
 
 export function LanguageToggle() {
-  const { locale, setLocale } = useI18n();
+  const { locale, setLocale, t } = useI18n();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="rounded-xl">
           <Globe className="w-5 h-5" />
-          <span className="sr-only">Change language</span>
+          <span className="sr-only">{t.language.change}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

@@ -10,6 +10,7 @@ import {
   serverTimestamp,
   query,
   where,
+  type Timestamp,
 } from "firebase/firestore";
 import { useFirestore, useUser } from "@/firebase";
 import { useCollection } from "@/firebase";
@@ -21,7 +22,7 @@ export type Reminder = {
   time: string;
   repeat: "daily" | "weekly" | "once";
   active: boolean;
-  createdAt: any;
+  createdAt: Timestamp;
   userId: string;
 };
 
@@ -40,16 +41,22 @@ export function useReminders() {
     return query(remindersRef, where("userId", "==", uid));
   }, [remindersRef, uid]);
 
-  const { data: reminders, loading } = useCollection(queryRef);
+  const { data: rawReminders, loading } = useCollection(queryRef);
+  const reminders = useMemo(() => (rawReminders || []) as Reminder[], [rawReminders]);
 
   const addReminder = useCallback(
     async (reminder: Omit<Reminder, "id" | "createdAt" | "userId">) => {
       if (!remindersRef || !uid) return;
-      await addDoc(remindersRef, {
-        ...reminder,
-        userId: uid,
-        createdAt: serverTimestamp(),
-      });
+      try {
+        await addDoc(remindersRef, {
+          ...reminder,
+          userId: uid,
+          createdAt: serverTimestamp(),
+        });
+      } catch (err) {
+        console.error("[LaVida] Failed to add reminder:", err);
+        throw err;
+      }
     },
     [remindersRef, uid]
   );
@@ -57,8 +64,13 @@ export function useReminders() {
   const toggleReminder = useCallback(
     async (id: string, currentActive: boolean) => {
       if (!db) return;
-      const docRef = doc(db, "reminders", id);
-      await updateDoc(docRef, { active: !currentActive });
+      try {
+        const docRef = doc(db, "reminders", id);
+        await updateDoc(docRef, { active: !currentActive });
+      } catch (err) {
+        console.error("[LaVida] Failed to toggle reminder:", err);
+        throw err;
+      }
     },
     [db]
   );
@@ -66,14 +78,19 @@ export function useReminders() {
   const deleteReminder = useCallback(
     async (id: string) => {
       if (!db) return;
-      const docRef = doc(db, "reminders", id);
-      await deleteDoc(docRef);
+      try {
+        const docRef = doc(db, "reminders", id);
+        await deleteDoc(docRef);
+      } catch (err) {
+        console.error("[LaVida] Failed to delete reminder:", err);
+        throw err;
+      }
     },
     [db]
   );
 
   return {
-    reminders: reminders || [],
+    reminders,
     loading,
     addReminder,
     toggleReminder,

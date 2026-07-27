@@ -21,6 +21,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
     }
 
     setLoading(true);
+    setError(null);
 
     const unsubscribe = onSnapshot(
       query,
@@ -33,8 +34,9 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
         setLoading(false);
       },
       (err) => {
-        console.error('Firestore useCollection error:', err);
+        console.error('[useCollection] Firestore error:', err);
         setError(err);
+        setData(null);
         setLoading(false);
       }
     );

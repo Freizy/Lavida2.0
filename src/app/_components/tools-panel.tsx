@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from "@/components/ui/alert-dialog";
 import { useI18n } from "@/lib/i18n";
 import { useReminders } from "@/hooks/use-reminders";
 import { useUser, useFirestore } from "@/firebase";
@@ -77,7 +78,7 @@ export function ToolsPanel({
           <HeartPulse className="w-6 h-6 text-primary" /> {t.tools.title}
         </h2>
         <Button variant="ghost" size="sm" onClick={onClose}>
-          Close
+          {t.tools.close}
         </Button>
       </div>
 
@@ -125,14 +126,14 @@ export function ToolsPanel({
                 <Bell className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-sm font-semibold">Reminders</p>
+                <p className="text-sm font-semibold">{t.tools.reminders}</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Set health reminders and alerts
+                  {t.tools.remindersDesc}
                 </p>
               </div>
               {reminders.filter((r: any) => r.active).length > 0 && (
                 <Badge className="bg-amber-500 text-white text-[10px]">
-                  {reminders.filter((r: any) => r.active).length} active
+                  {t.tools.activeCount.replace("{count}", String(reminders.filter((r: any) => r.active).length))}
                 </Badge>
               )}
             </CardContent>
@@ -155,9 +156,9 @@ export function ToolsPanel({
                 <Bell className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-sm font-semibold">Notifications</p>
+                <p className="text-sm font-semibold">{t.tools.notifications}</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  View alerts and reminders
+                  {t.tools.notificationsDesc}
                 </p>
               </div>
             </CardContent>
@@ -180,9 +181,9 @@ export function ToolsPanel({
                 <History className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-sm font-semibold">History</p>
+                <p className="text-sm font-semibold">{t.nav.history}</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  View past symptom checkups
+                  {t.tools.historyDesc}
                 </p>
               </div>
             </CardContent>
@@ -205,9 +206,9 @@ export function ToolsPanel({
                 <Pill className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-sm font-semibold">Medications</p>
+                <p className="text-sm font-semibold">{t.tools.medications}</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Track your medications and dosages
+                  {t.tools.medicationsDesc}
                 </p>
               </div>
             </CardContent>
@@ -230,9 +231,9 @@ export function ToolsPanel({
                 <FileDown className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-sm font-semibold">Health Report</p>
+                <p className="text-sm font-semibold">{t.tools.healthReport}</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Export your health summary as PDF
+                  {t.tools.healthReportDesc}
                 </p>
               </div>
             </CardContent>
@@ -247,7 +248,7 @@ export function ToolsPanel({
               onClick={() => setShowReminders(false)}
               className="gap-1"
             >
-              <X className="w-4 h-4" /> Back
+              <X className="w-4 h-4" /> {t.tools.back}
             </Button>
           </div>
 
@@ -255,7 +256,7 @@ export function ToolsPanel({
             <Input
               value={newReminderTitle}
               onChange={(e) => setNewReminderTitle(e.target.value)}
-              placeholder="Reminder title..."
+              placeholder={t.tools.reminderPlaceholder}
               className="flex-1"
               onKeyDown={(e) => e.key === "Enter" && handleAddReminder()}
             />
@@ -280,8 +281,8 @@ export function ToolsPanel({
               {reminders.length === 0 ? (
                 <div className="text-center py-12 space-y-3">
                   <Bell className="w-10 h-10 text-muted-foreground/20 mx-auto" />
-                  <p className="text-sm text-muted-foreground">
-                    No reminders yet. Add one above.
+                    <p className="text-sm text-muted-foreground">
+                    {t.tools.noReminders}
                   </p>
                 </div>
               ) : (
@@ -312,14 +313,32 @@ export function ToolsPanel({
                       >
                         <Power className={`w-3 h-3 ${reminder.active ? "text-green-500" : "text-muted-foreground"}`} />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => deleteReminder(reminder.id)}
-                        className="h-7 w-7 text-destructive/60 hover:text-destructive"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
+                        <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive/60 hover:text-destructive"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>{t.confirm.deleteTitle}</AlertDialogTitle>
+                            <AlertDialogDescription>{t.confirm.deleteDescription}</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>{t.confirm.cancel}</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => deleteReminder(reminder.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              {t.confirm.confirm}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                 ))

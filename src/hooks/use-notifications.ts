@@ -1,18 +1,23 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 type NotificationPermission = "default" | "granted" | "denied";
 
 export function useNotifications() {
   const [permission, setPermission] = useState<NotificationPermission>("default");
   const [isSupported, setIsSupported] = useState(false);
+  const timeoutsRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
 
   useEffect(() => {
     if ("Notification" in window) {
       setIsSupported(true);
       setPermission(Notification.permission);
     }
+    return () => {
+      timeoutsRef.current.forEach(clearTimeout);
+      timeoutsRef.current.clear();
+    };
   }, []);
 
   const requestPermission = useCallback(async () => {
@@ -38,9 +43,14 @@ export function useNotifications() {
     (title: string, body: string, delayMs: number) => {
       if (permission !== "granted") return null;
       const timeoutId = setTimeout(() => {
+        timeoutsRef.current.delete(timeoutId);
         sendNotification(title, { body, tag: "medication-reminder" });
       }, delayMs);
-      return () => clearTimeout(timeoutId);
+      timeoutsRef.current.add(timeoutId);
+      return () => {
+        clearTimeout(timeoutId);
+        timeoutsRef.current.delete(timeoutId);
+      };
     },
     [permission, sendNotification]
   );

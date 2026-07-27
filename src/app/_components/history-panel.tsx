@@ -1,11 +1,12 @@
 "use client";
 
-import { History, Calendar as CalendarIcon, Activity, LogIn, AlertTriangle } from "lucide-react";
+import { History, Calendar as CalendarIcon, Activity, LogIn, AlertTriangle, Trash2 } from "lucide-react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
+import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from "@/components/ui/alert-dialog";
 import { useI18n } from "@/lib/i18n";
 
 type HistoryItem = {
@@ -18,11 +19,12 @@ type HistoryItem = {
 };
 
 type HistoryPanelProps = {
-  items: HistoryItem[] | undefined;
+  items: HistoryItem[] | null | undefined;
   loading: boolean;
   isLoggedIn: boolean;
   error?: string | null;
   onSelect: (item: HistoryItem) => void;
+  onDelete: (id: string) => void;
   onClose: () => void;
   onSignIn: () => void;
 };
@@ -33,6 +35,7 @@ export function HistoryPanel({
   isLoggedIn,
   error,
   onSelect,
+  onDelete,
   onClose,
   onSignIn,
 }: HistoryPanelProps) {
@@ -45,7 +48,7 @@ export function HistoryPanel({
           <History className="w-6 h-6 text-primary" /> {t.history.title}
         </h2>
         <Button variant="ghost" size="sm" onClick={onClose}>
-          Close
+          {t.tools.close}
         </Button>
       </div>
       <ScrollArea className="h-[60vh] -mx-2 px-2">
@@ -68,7 +71,7 @@ export function HistoryPanel({
           ) : error ? (
             <div className="text-center py-20 space-y-3">
               <AlertTriangle className="w-12 h-12 text-destructive/40 mx-auto" />
-              <p className="text-destructive font-medium">Failed to load history</p>
+              <p className="text-destructive font-medium">{t.history.loadFailed}</p>
               <p className="text-sm text-muted-foreground max-w-xs mx-auto">{error}</p>
             </div>
           ) : loading ? (
@@ -105,15 +108,47 @@ export function HistoryPanel({
                         {item.age}y
                       </Badge>
                     </div>
-                    <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
-                      <CalendarIcon className="w-3 h-3" />
-                      {item.timestamp
-                        ?.toDate()
-                        .toLocaleDateString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                        })}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
+                        <CalendarIcon className="w-3 h-3" />
+                        {item.timestamp
+                          ?.toDate()
+                          .toLocaleDateString(undefined, {
+                            month: "short",
+                            day: "numeric",
+                          })}
+                      </span>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-destructive/40 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>{t.confirm.deleteTitle}</AlertDialogTitle>
+                            <AlertDialogDescription>{t.confirm.deleteDescription}</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>{t.confirm.cancel}</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDelete(item.id);
+                              }}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              {t.confirm.confirm}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </div>
                   <CardTitle className="text-sm font-bold line-clamp-1 group-hover:text-primary transition-colors">
                     {item.symptoms}

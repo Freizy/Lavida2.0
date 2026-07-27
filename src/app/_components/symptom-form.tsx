@@ -115,7 +115,7 @@ export function SymptomForm({
       </form>
 
       <div className="bg-secondary/50 p-4 rounded-2xl flex items-start gap-4">
-        <div className="bg-white p-2 rounded-xl shadow-sm">
+        <div className="bg-background p-2 rounded-xl shadow-sm">
           <UserCircle className="w-6 h-6 text-primary" />
         </div>
         <div className="space-y-1">

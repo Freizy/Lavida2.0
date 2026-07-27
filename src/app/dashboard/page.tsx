@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import {
   CalendarClock,
   HeartPulse,
@@ -22,6 +23,7 @@ import {
   serverTimestamp,
   setDoc,
   where,
+  limit,
 } from "firebase/firestore";
 import { useCollection } from "@/firebase";
 import { useI18n } from "@/lib/i18n";
@@ -36,7 +38,7 @@ import { EmergencyContacts } from "./_components/emergency-contacts";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user } = useUser();
+  const { user, loading: userLoading } = useUser();
   const db = useFirestore();
   const { t } = useI18n();
   const { toast } = useToast();
@@ -64,15 +66,18 @@ export default function DashboardPage() {
     return query(
       collection(db, "history"),
       where("userId", "==", user.uid),
+      limit(50),
     );
   }, [user?.uid, db]);
 
   const { data: rawHistoryItems, loading: historyLoading } =
     useCollection(historyQuery);
 
+  type HistoryDoc = { gender: string; age: number; symptoms: string; conditions: { name: string; cause?: string; urgency: string; nextSteps?: string }[]; timestamp: { toDate: () => Date } | null; userId: string };
+
   const historyItems = useMemo(() => {
     if (!rawHistoryItems) return null;
-    return [...rawHistoryItems].sort((a, b) => {
+    return [...(rawHistoryItems as HistoryDoc[])].sort((a, b) => {
       const aTime = a.timestamp?.toDate?.()?.getTime?.() || 0;
       const bTime = b.timestamp?.toDate?.()?.getTime?.() || 0;
       return bTime - aTime;
@@ -89,15 +94,29 @@ export default function DashboardPage() {
     });
   }, [profile]);
 
+  useEffect(() => {
+    if (!userLoading && !user) {
+      router.replace("/");
+    }
+  }, [user, userLoading, router]);
+
+  if (userLoading || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary/40" />
+      </div>
+    );
+  }
+
   const latestCheckup = historyItems?.[0];
-  const lastSymptoms = latestCheckup?.symptoms || "No recent symptom check yet";
+  const lastSymptoms = latestCheckup?.symptoms || t.dashboard.noRecentCheck;
   const lastUpdated = latestCheckup?.timestamp?.toDate?.()
     ? latestCheckup.timestamp.toDate().toLocaleDateString(undefined, {
         month: "short",
         day: "numeric",
         year: "numeric",
       })
-    : "Not available yet";
+    : t.dashboard.notAvailableYet;
   const latestConditions = latestCheckup?.conditions || [];
 
   const saveProfile = async (e: React.FormEvent) => {
@@ -124,17 +143,17 @@ export default function DashboardPage() {
         { merge: true },
       );
 
-      setProfileStatus("Profile saved successfully");
+      setProfileStatus(t.dashboard.profileSavedStatus);
       toast({
-        title: "Profile updated",
-        description: "Your gender and age have been saved successfully.",
+        title: t.dashboard.profileUpdated,
+        description: t.dashboard.profileUpdatedDesc,
       });
     } catch (error) {
       console.error("Failed to save profile", error);
-      setProfileStatus("Failed to save profile. Please try again.");
+      setProfileStatus(t.dashboard.profileSaveFailStatus);
       toast({
-        title: "Error",
-        description: "Failed to save profile. Please try again.",
+        title: t.dashboard.profileSaveError,
+        description: t.dashboard.profileSaveErrorDesc,
       });
     } finally {
       setSavingProfile(false);
@@ -160,7 +179,7 @@ export default function DashboardPage() {
                 className="rounded-full"
                 onClick={() => router.push("/")}
               >
-                <ArrowLeft className="w-4 h-4 mr-1" /> Back
+                <ArrowLeft className="w-4 h-4 mr-1" /> {t.dashboard.back}
               </Button>
               <Button
                 variant="outline"
@@ -179,8 +198,7 @@ export default function DashboardPage() {
           lastUpdated={lastUpdated}
           latestConditions={latestConditions}
           userName={user?.displayName || "Health user"}
-          userEmail={user?.email || "No email on file"}
-          userPhoto={user?.photoURL || null}
+          userEmail={user?.email || t.dashboardStats.noEmail}
           profileGender={profile?.gender || null}
           profileAge={profile?.age || null}
         />
@@ -248,7 +266,7 @@ export default function DashboardPage() {
                     className="rounded-full"
                     disabled={savingProfile}
                   >
-                    {savingProfile ? "Saving..." : t.dashboard.saveProfile}
+                    {savingProfile ? t.dashboard.saving : t.dashboard.saveProfile}
                   </Button>
 
                   {profileStatus ? (
@@ -282,7 +300,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {latestConditions.length ? (
-                      latestConditions.map((condition: any, index: number) => (
+                      latestConditions.map((condition: { name: string; urgency?: string }, index: number) => (
                         <Badge
                           key={`${condition.name}-${index}`}
                           variant="secondary"
@@ -300,10 +318,10 @@ export default function DashboardPage() {
 
                 <div className="rounded-xl border p-3">
                   <div className="flex items-center gap-2 text-sm font-semibold">
-                    <HeartPulse className="w-4 h-4 text-primary" /> Care continuity
+                    <HeartPulse className="w-4 h-4 text-primary" /> {t.dashboard.careContinuity}
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Your previous checkups remain available in one place for quick follow-up.
+                    {t.dashboard.careContinuityDesc}
                   </p>
                 </div>
               </CardContent>

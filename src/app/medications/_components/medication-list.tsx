@@ -1,30 +1,34 @@
 "use client";
 
 import { Pill, Clock, Trash2, Power, PowerOff, Calendar } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useMedications, type Medication } from "@/hooks/use-medications";
+import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from "@/components/ui/alert-dialog";
+import type { Medication } from "@/hooks/use-medications";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
 
 type MedicationListProps = {
   medications: Medication[];
   emptyMessage: string;
+  onDelete: (id: string) => void;
+  onToggleActive: (id: string, currentActive: boolean) => void;
 };
 
-function getFrequencyLabel(freq: Medication["frequency"]) {
-  switch (freq) {
-    case "daily": return "Once daily";
-    case "twice_daily": return "Twice daily";
-    case "three_times_daily": return "3x daily";
-    case "weekly": return "Weekly";
-    case "as_needed": return "As needed";
-    default: return freq;
-  }
-}
+export function MedicationList({ medications, emptyMessage, onDelete, onToggleActive }: MedicationListProps) {
+  const { t } = useI18n();
 
-export function MedicationList({ medications, emptyMessage }: MedicationListProps) {
-  const { deleteMedication, toggleActive } = useMedications();
+  function getFrequencyLabel(freq: Medication["frequency"]) {
+    switch (freq) {
+      case "daily": return t.medications.list.onceDaily;
+      case "twice_daily": return t.medications.list.twiceDaily;
+      case "three_times_daily": return t.medications.list.threeTimesDaily;
+      case "weekly": return t.medications.list.weekly;
+      case "as_needed": return t.medications.list.asNeeded;
+      default: return freq;
+    }
+  }
 
   if (medications.length === 0) {
     return (
@@ -75,7 +79,7 @@ export function MedicationList({ medications, emptyMessage }: MedicationListProp
                   )}
                   <p className="text-[10px] text-muted-foreground/60 flex items-center gap-1">
                     <Calendar className="w-3 h-3" />
-                    Started {new Date(med.startDate).toLocaleDateString()}
+                    {t.medications.list.started} {new Date(med.startDate).toLocaleDateString()}
                   </p>
                 </div>
               </div>
@@ -84,7 +88,7 @@ export function MedicationList({ medications, emptyMessage }: MedicationListProp
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => toggleActive(med.id)}
+                  onClick={() => onToggleActive(med.id, med.active)}
                   className="h-7 w-7"
                 >
                   {med.active ? (
@@ -93,14 +97,32 @@ export function MedicationList({ medications, emptyMessage }: MedicationListProp
                     <PowerOff className="w-3 h-3 text-muted-foreground" />
                   )}
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => deleteMedication(med.id)}
-                  className="h-7 w-7 text-destructive/60 hover:text-destructive"
-                >
-                  <Trash2 className="w-3 h-3" />
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-destructive/60 hover:text-destructive"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{t.confirm.deleteTitle}</AlertDialogTitle>
+                      <AlertDialogDescription>{t.confirm.deleteDescription}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>{t.confirm.cancel}</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => onDelete(med.id)}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        {t.confirm.confirm}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
           </CardContent>

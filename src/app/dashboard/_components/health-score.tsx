@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Minus, HeartPulse } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 type HistoryItem = {
   conditions: { urgency: string }[];
@@ -16,11 +17,11 @@ type HealthScoreProps = {
 function calculateScore(items: HistoryItem[]): {
   score: number;
   trend: "up" | "down" | "stable";
-  label: string;
+  scoreLabel: string;
   color: string;
 } {
   if (items.length === 0) {
-    return { score: 0, trend: "stable", label: "No data yet", color: "text-muted-foreground" };
+    return { score: 0, trend: "stable", scoreLabel: "noData", color: "text-muted-foreground" };
   }
 
   let totalPoints = 0;
@@ -57,21 +58,30 @@ function calculateScore(items: HistoryItem[]): {
     else if (recent < older - 5) trend = "down";
   }
 
-  let label = "Good";
+  let scoreLabel = "good";
   let color = "text-green-500";
-  if (score < 30) { label = "Needs Attention"; color = "text-red-500"; }
-  else if (score < 60) { label = "Fair"; color = "text-amber-500"; }
-  else if (score < 80) { label = "Good"; color = "text-green-500"; }
-  else { label = "Excellent"; color = "text-emerald-500"; }
+  if (score < 30) { scoreLabel = "needsAttention"; color = "text-red-500"; }
+  else if (score < 60) { scoreLabel = "fair"; color = "text-amber-500"; }
+  else if (score < 80) { scoreLabel = "good"; color = "text-green-500"; }
+  else { scoreLabel = "excellent"; color = "text-emerald-500"; }
 
-  return { score, trend, label, color };
+  return { score, trend, scoreLabel, color };
 }
 
 export function HealthScore({ historyItems }: HealthScoreProps) {
-  const { score, trend, label, color } = useMemo(
+  const { t } = useI18n();
+  const { score, trend, scoreLabel, color } = useMemo(
     () => calculateScore(historyItems),
     [historyItems]
   );
+
+  const labelMap: Record<string, string> = {
+    noData: t.healthScore.noData,
+    good: t.healthScore.good,
+    fair: t.healthScore.fair,
+    needsAttention: t.healthScore.needsAttention,
+    excellent: t.healthScore.excellent,
+  };
 
   const circumference = 2 * Math.PI * 45;
   const strokeDashoffset = circumference - (score / 100) * circumference;
@@ -80,7 +90,7 @@ export function HealthScore({ historyItems }: HealthScoreProps) {
     <Card className="border-primary/10">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base">
-          <HeartPulse className="w-4 h-4 text-primary" /> Health Score
+          <HeartPulse className="w-4 h-4 text-primary" /> {t.healthScore.title}
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col items-center py-4">
@@ -119,10 +129,10 @@ export function HealthScore({ historyItems }: HealthScoreProps) {
             {trend === "up" && <TrendingUp className="w-4 h-4 text-green-500" />}
             {trend === "down" && <TrendingDown className="w-4 h-4 text-red-500" />}
             {trend === "stable" && <Minus className="w-4 h-4 text-muted-foreground" />}
-            <span className={`text-sm font-bold ${color}`}>{label}</span>
+            <span className={`text-sm font-bold ${color}`}>{labelMap[scoreLabel]}</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            Based on your last {historyItems.length} checkup{historyItems.length !== 1 ? "s" : ""}
+            {t.healthScore.basedOn} {historyItems.length} {t.healthScore.checkups}
           </p>
         </div>
       </CardContent>

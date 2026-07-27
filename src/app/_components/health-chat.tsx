@@ -40,7 +40,7 @@ export function HealthChat({
   }, [messages]);
 
   return (
-    <section className="flex flex-col h-[650px] bg-white rounded-[2rem] shadow-2xl border border-border overflow-hidden animate-in zoom-in-95 duration-500">
+    <section className="flex flex-col h-[650px] bg-card rounded-[2rem] shadow-2xl border border-border overflow-hidden animate-in zoom-in-95 duration-500">
       <header className="px-6 py-5 bg-primary text-white flex items-center justify-between shadow-lg relative z-10">
         <div className="flex items-center gap-4">
           <div className="relative">
@@ -64,11 +64,11 @@ export function HealthChat({
           onClick={onClose}
           className="text-white hover:bg-white/10 h-10 px-4 rounded-full font-bold"
         >
-          <X className="w-4 h-4 mr-1" /> Close
+          <X className="w-4 h-4 mr-1" /> {t.chat.close}
         </Button>
       </header>
 
-      <ScrollArea className="flex-1 px-6 py-6 bg-[#FAFAFA]">
+      <ScrollArea className="flex-1 px-6 py-6 bg-secondary/30">
         <div className="space-y-6">
           {messages.map((msg, idx) => (
             <div
@@ -83,7 +83,7 @@ export function HealthChat({
                   "max-w-[85%] p-4 rounded-2xl shadow-sm text-sm font-medium leading-relaxed",
                   msg.role === "user"
                     ? "bg-primary text-white rounded-tr-none shadow-primary/10"
-                    : "bg-white border border-border text-foreground rounded-tl-none shadow-soft",
+                    : "bg-card border border-border text-foreground rounded-tl-none shadow-soft",
                 )}
               >
                 {msg.content}
@@ -92,7 +92,7 @@ export function HealthChat({
           ))}
           {loading && (
             <div className="flex justify-start animate-in fade-in">
-              <div className="bg-white border border-border p-4 rounded-2xl rounded-tl-none shadow-soft">
+              <div className="bg-card border border-border p-4 rounded-2xl rounded-tl-none shadow-soft">
                 <div className="flex gap-1">
                   <span className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:-0.3s]" />
                   <span className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:-0.15s]" />
@@ -105,7 +105,7 @@ export function HealthChat({
         </div>
       </ScrollArea>
 
-      <div className="p-6 bg-white border-t-2 border-secondary">
+      <div className="p-6 bg-background border-t-2 border-secondary">
         <form onSubmit={onSend} className="flex gap-3">
           <input
             type="text"

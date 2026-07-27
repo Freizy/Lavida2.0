@@ -10,52 +10,55 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-const healthTips = [
-  {
-    icon: <Heart className="w-4 h-4" />,
-    title: "Heart Health",
-    tip: "Regular exercise and a balanced diet can reduce heart disease risk by up to 80%.",
-    color: "text-red-500",
-  },
-  {
-    icon: <Droplets className="w-4 h-4" />,
-    title: "Stay Hydrated",
-    tip: "Drink at least 8 glasses of water daily for optimal body function.",
-    color: "text-blue-500",
-  },
-  {
-    icon: <Moon className="w-4 h-4" />,
-    title: "Sleep Well",
-    tip: "Adults need 7-9 hours of quality sleep for immune system support.",
-    color: "text-indigo-500",
-  },
-  {
-    icon: <Apple className="w-4 h-4" />,
-    title: "Nutrition",
-    tip: "Eat 5 servings of fruits and vegetables daily for essential vitamins.",
-    color: "text-green-500",
-  },
-  {
-    icon: <Dumbbell className="w-4 h-4" />,
-    title: "Stay Active",
-    tip: "150 minutes of moderate exercise weekly improves mental and physical health.",
-    color: "text-orange-500",
-  },
-  {
-    icon: <ShieldCheck className="w-4 h-4" />,
-    title: "Preventive Care",
-    tip: "Annual check-ups can catch health issues early when they're most treatable.",
-    color: "text-primary",
-  },
-];
+import { useI18n } from "@/lib/i18n";
 
 export function HealthTips() {
+  const { t } = useI18n();
+
+  const healthTips = [
+    {
+      icon: <Heart className="w-4 h-4" />,
+      title: t.healthTips.heartHealth,
+      tip: t.healthTips.heartHealthTip,
+      color: "text-red-500",
+    },
+    {
+      icon: <Droplets className="w-4 h-4" />,
+      title: t.healthTips.stayHydrated,
+      tip: t.healthTips.stayHydratedTip,
+      color: "text-blue-500",
+    },
+    {
+      icon: <Moon className="w-4 h-4" />,
+      title: t.healthTips.sleepWell,
+      tip: t.healthTips.sleepWellTip,
+      color: "text-indigo-500",
+    },
+    {
+      icon: <Apple className="w-4 h-4" />,
+      title: t.healthTips.nutrition,
+      tip: t.healthTips.nutritionTip,
+      color: "text-green-500",
+    },
+    {
+      icon: <Dumbbell className="w-4 h-4" />,
+      title: t.healthTips.stayActive,
+      tip: t.healthTips.stayActiveTip,
+      color: "text-orange-500",
+    },
+    {
+      icon: <ShieldCheck className="w-4 h-4" />,
+      title: t.healthTips.preventiveCare,
+      tip: t.healthTips.preventiveCareTip,
+      color: "text-primary",
+    },
+  ];
+
   return (
     <Card className="border-primary/10">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
-          <BookOpen className="w-4 h-4 text-primary" /> Health Tips
+          <BookOpen className="w-4 h-4 text-primary" /> {t.healthTips.title}
         </CardTitle>
       </CardHeader>
       <CardContent>

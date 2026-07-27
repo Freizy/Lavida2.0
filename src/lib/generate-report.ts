@@ -16,6 +16,15 @@ type ReportData = {
   healthScore?: number;
 };
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function getUrgencyColor(urgency: string): string {
   switch (urgency) {
     case "critical": return "#dc2626";
@@ -70,15 +79,15 @@ export function generateHealthReport(data: ReportData): void {
         <div class="info-grid">
           <div class="info-item">
             <div class="info-label">Name</div>
-            <div class="info-value">${data.userName || "N/A"}</div>
+            <div class="info-value">${escapeHtml(data.userName || "N/A")}</div>
           </div>
           <div class="info-item">
             <div class="info-label">Email</div>
-            <div class="info-value">${data.userEmail || "N/A"}</div>
+            <div class="info-value">${escapeHtml(data.userEmail || "N/A")}</div>
           </div>
           <div class="info-item">
             <div class="info-label">Gender</div>
-            <div class="info-value">${data.gender}</div>
+            <div class="info-value">${escapeHtml(data.gender)}</div>
           </div>
           <div class="info-item">
             <div class="info-label">Age</div>
@@ -101,7 +110,7 @@ export function generateHealthReport(data: ReportData): void {
 
       <div class="section">
         <div class="section-title">Reported Symptoms</div>
-        <p style="padding: 15px; background: #f9fafb; border-radius: 8px; font-size: 14px;">${data.symptoms}</p>
+        <p style="padding: 15px; background: #f9fafb; border-radius: 8px; font-size: 14px;">${escapeHtml(data.symptoms)}</p>
       </div>
 
       <div class="section">
@@ -109,16 +118,16 @@ export function generateHealthReport(data: ReportData): void {
         ${data.conditions.map((condition, index) => `
           <div class="condition-card">
             <div class="condition-header">
-              <span class="condition-name">${index + 1}. ${condition.name}</span>
-              <span class="urgency-badge" style="background-color: ${getUrgencyColor(condition.urgency)};">${condition.urgency}</span>
+              <span class="condition-name">${index + 1}. ${escapeHtml(condition.name)}</span>
+              <span class="urgency-badge" style="background-color: ${getUrgencyColor(condition.urgency)};">${escapeHtml(condition.urgency)}</span>
             </div>
             <div class="condition-detail">
               <div class="detail-label">Potential Cause</div>
-              <div class="detail-value">${condition.cause}</div>
+              <div class="detail-value">${escapeHtml(condition.cause)}</div>
             </div>
             <div class="condition-detail">
               <div class="detail-label">Recommended Next Steps</div>
-              <div class="detail-value">${condition.nextSteps}</div>
+              <div class="detail-value">${escapeHtml(condition.nextSteps)}</div>
             </div>
           </div>
         `).join("")}
@@ -143,5 +152,7 @@ export function generateHealthReport(data: ReportData): void {
     setTimeout(() => {
       printWindow.print();
     }, 500);
+  } else {
+    alert("Pop-up was blocked. Please allow pop-ups for this site to export your report.");
   }
 }

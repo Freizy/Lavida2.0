@@ -15,7 +15,7 @@ export function LoadingView() {
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
       <div className="relative">
         <div className="absolute inset-0 bg-primary/20 rounded-full blur-3xl animate-pulse" />
-        <div className="relative w-48 h-48 rounded-full overflow-hidden border-8 border-white shadow-2xl">
+        <div className="relative w-48 h-48 rounded-full overflow-hidden border-8 border-background shadow-2xl">
           {loadingPlaceholder && (
             <Image
               src={loadingPlaceholder.imageUrl}

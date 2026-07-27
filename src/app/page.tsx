@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Stethoscope,
@@ -22,153 +22,54 @@ import {
   useUser,
   useFirestore,
   useAuth,
-  useDoc,
   isFirebaseAuthConfigured,
   firebaseAuthStatusMessage,
 } from "@/firebase";
 import { GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
-import {
-  collection,
-  addDoc,
-  doc,
-  setDoc,
-  serverTimestamp,
-  query,
-  where,
-  limit,
-} from "firebase/firestore";
-import { useCollection } from "@/firebase";
+import { doc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
-import { useToast } from "@/hooks/use-toast";
 
 import { SymptomForm } from "./_components/symptom-form";
-import { ConditionCard } from "./_components/condition-card";
 import { HealthChat } from "./_components/health-chat";
 import { HistoryPanel } from "./_components/history-panel";
 import { ToolsPanel } from "./_components/tools-panel";
 import { LoadingView } from "./_components/loading-view";
 import { ErrorView } from "./_components/error-view";
 import { ResultsView } from "./_components/results-view";
-import { analyzeSymptoms, type SymptomAnalysisOutput } from "@/ai/flows/symptom-analysis-flow";
-import { chatWithLaVida } from "@/ai/flows/health-chat-flow";
-
-type Message = {
-  role: "user" | "model";
-  content: string;
-};
+import { useSymptomChecker } from "@/hooks/use-symptom-checker";
+import { useHealthChat } from "@/hooks/use-health-chat";
 
 export default function Home() {
   const router = useRouter();
-  const { user, loading: userLoading } = useUser();
+  const { user } = useUser();
   const db = useFirestore();
   const auth = useAuth();
   const authEnabled = isFirebaseAuthConfigured;
   const { t } = useI18n();
-  const { toast } = useToast();
 
-  const [gender, setGender] = useState<"Male" | "Female">("Male");
-  const [age, setAge] = useState<string>("");
-  const [symptoms, setSymptoms] = useState<string>("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<SymptomAnalysisOutput | null>(null);
   const [currentYear, setCurrentYear] = useState<number | null>(null);
-  const [profileRestored, setProfileRestored] = useState(false);
-
-  const [showChat, setShowChat] = useState(false);
-  const [chatMessages, setChatMessages] = useState<Message[]>([]);
-  const [chatInput, setChatInput] = useState("");
-  const [chatLoading, setChatLoading] = useState(false);
-
   const [showHistory, setShowHistory] = useState(false);
   const [showTools, setShowTools] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const { unreadCount } = useNotificationStore();
 
-  const profileRef = useMemo(() => {
-    if (!user?.uid || !db) return null;
-    return doc(db, "profiles", user.uid);
-  }, [user?.uid, db]);
-
-  const { data: profile } = useDoc(profileRef);
-
-  const historyQuery = useMemo(() => {
-    if (!user?.uid || !db) return null;
-    return query(
-      collection(db, "history"),
-      where("userId", "==", user.uid),
-      limit(50),
-    );
-  }, [user?.uid, db]);
-
-  const { data: rawHistoryItems, loading: historyLoading, error: historyError } =
-    useCollection(historyQuery);
-
-  const historyItems = useMemo(() => {
-    if (!rawHistoryItems) return null;
-    return [...rawHistoryItems].sort((a, b) => {
-      const aTime = a.timestamp?.toDate?.()?.getTime?.() || 0;
-      const bTime = b.timestamp?.toDate?.()?.getTime?.() || 0;
-      return bTime - aTime;
-    });
-  }, [rawHistoryItems]);
+  const checker = useSymptomChecker(t);
+  const chat = useHealthChat();
 
   useEffect(() => {
     setCurrentYear(new Date().getFullYear());
   }, []);
 
-  useEffect(() => {
-    if (!profile) {
-      setProfileRestored(false);
-      return;
-    }
-
-    const hasSavedGender =
-      profile.gender === "Female" || profile.gender === "Male";
-    const hasSavedAge = profile.age !== null && profile.age !== undefined;
-
-    if (hasSavedGender) setGender(profile.gender);
-    if (hasSavedAge) setAge(String(profile.age));
-
-    setProfileRestored(hasSavedGender || hasSavedAge);
-  }, [profile]);
-
-  const persistProfile = async (updates: Record<string, any>) => {
-    if (!user || !db) return;
-    await setDoc(
-      doc(db, "profiles", user.uid),
-      {
-        userId: user.uid,
-        displayName: user.displayName || null,
-        email: user.email || null,
-        photoURL: user.photoURL || null,
-        ...updates,
-        updatedAt: serverTimestamp(),
-      },
-      { merge: true },
-    );
-  };
-
-  const handleGenderChange = (g: "Male" | "Female") => {
-    setGender(g);
-  };
-
-  const handleAgeChange = (a: string) => {
-    setAge(a);
-  };
-
   const handleLogin = async () => {
     if (!authEnabled || !auth || !db) {
-      setError(firebaseAuthStatusMessage);
+      checker.setError(firebaseAuthStatusMessage);
       return;
     }
-
     const provider = new GoogleAuthProvider();
     try {
-      setError(null);
+      checker.setError(null);
       const result = await signInWithPopup(auth, provider);
-
       await setDoc(
         doc(db, "profiles", result.user.uid),
         {
@@ -180,139 +81,38 @@ export default function Home() {
         },
         { merge: true },
       );
-
       router.push("/dashboard");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Login failed", err);
-      setError(
-        err?.message ||
-          "Sign in failed. Please check your Firebase Auth configuration.",
+      checker.setError(
+        err instanceof Error ? err.message : "Sign in failed. Please check your Firebase Auth configuration.",
       );
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (!auth) return;
-    signOut(auth);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setResult(null);
-
-    if (!age || !symptoms.trim()) {
-      setError("Please provide both age and a description of your symptoms.");
-      return;
-    }
-
-    const ageNum = parseInt(age);
-    if (isNaN(ageNum) || ageNum < 1 || ageNum > 99) {
-      setError("Please enter a valid age between 1 and 99.");
-      return;
-    }
-
-    setLoading(true);
     try {
-      const response = await analyzeSymptoms({
-        gender,
-        age: ageNum,
-        symptoms: symptoms.trim(),
-      });
-      setLoading(false);
-      setResult(response);
-
-      if (user && db) {
-        const isNewProfile = !profile?.gender && !profile?.age;
-        await persistProfile({ gender, age: ageNum });
-
-        if (isNewProfile) {
-          toast({
-            title: "Profile saved",
-            description: "Your gender and age have been saved for future checkups.",
-          });
-        }
-
-        await addDoc(collection(db, "history"), {
-          userId: user.uid,
-          gender,
-          age: ageNum,
-          symptoms: symptoms.trim(),
-          conditions: response.conditions,
-          timestamp: serverTimestamp(),
-        });
-      }
-    } catch (err: any) {
-      setLoading(false);
-      setError(err.message || "Oops! Something went wrong. Please try again.");
+      await signOut(auth);
+    } catch (err) {
+      console.error("Logout failed", err);
     }
   };
 
-  const handleStartChat = () => {
-    setShowChat(true);
-    if (chatMessages.length === 0 && result) {
-      setChatMessages([
-        {
-          role: "model",
-          content: `Hi! I'm LaVida, your health buddy. I've analyzed your symptoms. Which of these conditions would you like to explore further, or do you have other questions about how you're feeling?`,
-        },
-      ]);
-    }
-  };
-
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!chatInput.trim() || chatLoading || !result) return;
-
-    const userMessage = chatInput.trim();
-    setChatInput("");
-    setChatMessages((prev) => [
-      ...prev,
-      { role: "user", content: userMessage },
-    ]);
-    setChatLoading(true);
-
+  const handleDeleteHistory = async (id: string) => {
+    if (!db) return;
     try {
-      const response = await chatWithLaVida({
-        initialContext: {
-          gender,
-          age: parseInt(age),
-          symptoms,
-          conditions: result.conditions.map((c) => c.name),
-        },
-        history: chatMessages,
-        message: userMessage,
-      });
-
-      setChatMessages((prev) => [
-        ...prev,
-        { role: "model", content: response.response },
-      ]);
-    } catch (err: any) {
-      setError("Chat Error: " + (err.message || "Could not reach LaVida."));
-    } finally {
-      setChatLoading(false);
+      await deleteDoc(doc(db, "history", id));
+    } catch (err) {
+      console.error("[LaVida] Failed to delete history item:", err);
     }
   };
 
-  const handleRestart = () => {
-    setGender("Male");
-    setAge("");
-    setSymptoms("");
-    setResult(null);
-    setError(null);
-    setShowChat(false);
+  const handleFullRestart = () => {
+    checker.handleRestart();
+    chat.resetChat();
     setShowHistory(false);
     setShowTools(false);
-    setChatMessages([]);
-  };
-
-  const selectHistoryItem = (item: any) => {
-    setGender(item.gender);
-    setAge(item.age.toString());
-    setSymptoms(item.symptoms);
-    setResult({ conditions: item.conditions });
-    setShowHistory(false);
   };
 
   return (
@@ -320,7 +120,7 @@ export default function Home() {
       <nav className="w-full max-w-2xl flex items-center justify-between p-4 md:p-6 md:px-0">
         <div
           className="flex items-center gap-2 group cursor-pointer"
-          onClick={handleRestart}
+          onClick={handleFullRestart}
         >
           <div className="bg-primary p-2 rounded-xl shadow-glow transition-transform group-hover:scale-110">
             <Stethoscope className="w-5 h-5 md:w-6 md:h-6 text-white" />
@@ -380,10 +180,7 @@ export default function Home() {
               </Button>
               <div className="h-6 w-[1px] bg-border" />
               <div className="flex items-center gap-3 pl-2">
-                <div
-                  className="cursor-pointer"
-                  onClick={() => router.push("/dashboard")}
-                >
+                <div className="cursor-pointer" onClick={() => router.push("/dashboard")}>
                   <Avatar className="w-10 h-10 border-2 border-primary/20 shadow-sm">
                     <AvatarImage src={user.photoURL || undefined} />
                     <AvatarFallback className="bg-primary/5 text-primary">
@@ -408,7 +205,7 @@ export default function Home() {
               className="lavida-button !w-auto !py-2 rounded-full px-6 shadow-glow disabled:cursor-not-allowed"
             >
               <LogIn className="w-4 h-4" />{" "}
-              {authEnabled ? t.nav.signIn : "Sign In Unavailable"}
+              {authEnabled ? t.nav.signIn : t.nav.signInUnavailable}
             </Button>
           )}
         </div>
@@ -429,11 +226,15 @@ export default function Home() {
       >
         {showHistory && (
           <HistoryPanel
-            items={historyItems}
-            loading={historyLoading}
+            items={checker.historyItems}
+            loading={checker.historyLoading}
             isLoggedIn={!!user}
-            error={historyError?.message}
-            onSelect={selectHistoryItem}
+            error={checker.historyError?.message}
+            onSelect={(item) => {
+              checker.selectHistoryItem(item);
+              setShowHistory(false);
+            }}
+            onDelete={handleDeleteHistory}
             onClose={() => setShowHistory(false)}
             onSignIn={handleLogin}
           />
@@ -443,16 +244,7 @@ export default function Home() {
           <ToolsPanel
             onWellnessAssistant={() => {
               setShowTools(false);
-              setShowChat(true);
-              if (chatMessages.length === 0) {
-                setChatMessages([
-                  {
-                    role: "model",
-                    content:
-                      "Hi! I'm LaVida, your health buddy. I can help you with symptom follow-ups, health guidance, and wellness recommendations.",
-                  },
-                ]);
-              }
+              chat.startChat(t.home.chatWelcomeTools);
             }}
             onOpenNotifications={() => {
               setShowTools(false);
@@ -466,43 +258,50 @@ export default function Home() {
           />
         )}
 
-        {!showHistory && !showTools && !result && !loading && !showChat && (
+        {!showHistory && !showTools && !checker.result && !checker.loading && !chat.showChat && (
           <SymptomForm
-            gender={gender}
-            age={age}
-            symptoms={symptoms}
-            loading={loading}
-            profileRestored={profileRestored}
-            onGenderChange={handleGenderChange}
-            onAgeChange={handleAgeChange}
-            onSymptomsChange={setSymptoms}
-            onSubmit={handleSubmit}
+            gender={checker.gender}
+            age={checker.age}
+            symptoms={checker.symptoms}
+            loading={checker.loading}
+            profileRestored={checker.profileRestored}
+            onGenderChange={checker.setGender}
+            onAgeChange={checker.setAge}
+            onSymptomsChange={checker.setSymptoms}
+            onSubmit={checker.handleSubmit}
           />
         )}
 
-        {loading && <LoadingView />}
+        {checker.loading && <LoadingView />}
 
-        {error && <ErrorView message={error} onRetry={handleRestart} />}
+        {checker.error && <ErrorView message={checker.error} onRetry={handleFullRestart} />}
 
-        {result && result.conditions && !showChat && !showHistory && !showTools && (
+        {checker.result && checker.result.conditions && !chat.showChat && !showHistory && !showTools && (
           <ResultsView
-            conditions={result.conditions}
-            gender={gender}
-            age={age}
-            symptoms={symptoms}
-            onStartChat={handleStartChat}
-            onRestart={handleRestart}
+            conditions={checker.result.conditions}
+            gender={checker.gender}
+            age={checker.age}
+            symptoms={checker.symptoms}
+            onStartChat={() => chat.startChat(t.home.chatWelcome)}
+            onRestart={handleFullRestart}
           />
         )}
 
-        {showChat && (
+        {chat.showChat && (
           <HealthChat
-            messages={chatMessages}
-            loading={chatLoading}
-            input={chatInput}
-            onInputChange={setChatInput}
-            onSend={handleSendMessage}
-            onClose={() => setShowChat(false)}
+            messages={chat.chatMessages}
+            loading={chat.chatLoading}
+            input={chat.chatInput}
+            onInputChange={chat.setChatInput}
+            onSend={(e) =>
+              chat.sendMessage(e, {
+                gender: checker.gender,
+                age: checker.age,
+                symptoms: checker.symptoms,
+                conditions: checker.result?.conditions?.map((c) => c.name) || [],
+              }, t)
+            }
+            onClose={() => chat.setShowChat(false)}
           />
         )}
 

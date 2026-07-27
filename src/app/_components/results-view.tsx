@@ -80,7 +80,7 @@ export function ResultsView({
           variant="outline"
           className="py-4 text-lg border-primary/30 hover:bg-primary/5"
         >
-          <Download className="w-5 h-5 mr-2" /> Export Health Report (PDF)
+          <Download className="w-5 h-5 mr-2" /> {t.results.exportPdf}
         </Button>
         <Button
           variant="ghost"

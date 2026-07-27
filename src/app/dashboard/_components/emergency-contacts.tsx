@@ -11,21 +11,21 @@ export function EmergencyContacts() {
   const emergencyContacts = [
     {
       name: t.emergency.services,
-      number: "911",
+      number: t.emergency.servicesNumber,
       description: t.emergency.servicesDesc,
       icon: <AlertTriangle className="w-4 h-4" />,
       color: "bg-red-500/10 text-red-600",
     },
     {
       name: t.emergency.poison,
-      number: "1-800-222-1222",
+      number: t.emergency.poisonNumber,
       description: t.emergency.poisonDesc,
       icon: <Phone className="w-4 h-4" />,
       color: "bg-amber-500/10 text-amber-600",
     },
     {
       name: t.emergency.crisis,
-      number: "988",
+      number: t.emergency.crisisNumber,
       description: t.emergency.crisisDesc,
       icon: <Phone className="w-4 h-4" />,
       color: "bg-blue-500/10 text-blue-600",
@@ -44,7 +44,7 @@ export function EmergencyContacts() {
           {emergencyContacts.map((contact, index) => (
             <div
               key={index}
-              className="flex items-center justify-between rounded-xl border bg-white dark:bg-card p-3"
+              className="flex items-center justify-between rounded-xl border bg-background p-3"
             >
               <div className="flex items-center gap-3">
                 <div className={`p-2 rounded-lg ${contact.color}`}>
