@@ -7,7 +7,8 @@
  * - SymptomAnalysisOutput - The return type for the analyzeSymptoms function.
  */
 
-import { ai } from '@/ai/genkit';
+import { getAI } from '@/ai/genkit';
+const ai = getAI();
 import { z } from 'genkit';
 
 const SymptomAnalysisInputSchema = z.object({

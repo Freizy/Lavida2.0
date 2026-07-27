@@ -3,7 +3,8 @@
  * @fileOverview A conversational AI flow for health-related follow-up questions.
  */
 
-import { ai } from '@/ai/genkit';
+import { getAI } from '@/ai/genkit';
+const ai = getAI();
 import { z } from 'genkit';
 
 const MessageSchema = z.object({
