@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   HeartPulse,
   CalendarClock,
@@ -22,9 +22,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from "@/components/ui/alert-dialog";
 import { useI18n } from "@/lib/i18n";
 import { useReminders } from "@/hooks/use-reminders";
-import { useUser, useFirestore } from "@/firebase";
+import { useUser, useFirestore, useDoc, useCollection } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { generateHealthReport } from "@/lib/generate-report";
+import { collection, doc, query, where, limit as firestoreLimit } from "firebase/firestore";
+import { calculateHealthScore, type ScoredCheckup } from "@/lib/health-score";
+import { useToast } from "@/hooks/use-toast";
 
 type ToolsPanelProps = {
   onWellnessAssistant: () => void;
@@ -42,10 +45,41 @@ export function ToolsPanel({
   const { t } = useI18n();
   const router = useRouter();
   const { user } = useUser();
+  const db = useFirestore();
+  const { toast } = useToast();
   const { reminders, addReminder, deleteReminder, toggleReminder } = useReminders();
   const [showReminders, setShowReminders] = useState(false);
   const [newReminderTitle, setNewReminderTitle] = useState("");
   const [newReminderTime, setNewReminderTime] = useState("08:00");
+
+  const profileRef = useMemo(() => {
+    if (!user?.uid || !db) return null;
+    return doc(db, "profiles", user.uid);
+  }, [user?.uid, db]);
+
+  const { data: profile } = useDoc(profileRef);
+
+  const historyQuery = useMemo(() => {
+    if (!user?.uid || !db) return null;
+    return query(
+      collection(db, "history"),
+      where("userId", "==", user.uid),
+      firestoreLimit(50),
+    );
+  }, [user?.uid, db]);
+
+  const { data: rawHistoryItems } = useCollection(historyQuery);
+
+  type HistoryDoc = { gender: string; age: number; symptoms: string; conditions: { name: string; cause?: string; urgency: string; nextSteps?: string }[]; timestamp: { toDate: () => Date } | null };
+
+  const sortedHistory = useMemo(() => {
+    if (!rawHistoryItems) return [];
+    return [...(rawHistoryItems as HistoryDoc[])].sort((a, b) => {
+      const aTime = a.timestamp?.toDate?.()?.getTime?.() || 0;
+      const bTime = b.timestamp?.toDate?.()?.getTime?.() || 0;
+      return bTime - aTime;
+    });
+  }, [rawHistoryItems]);
 
   const handleAddReminder = () => {
     if (!newReminderTitle.trim()) return;
@@ -60,14 +94,39 @@ export function ToolsPanel({
   };
 
   const handleHealthSummary = () => {
+    if (sortedHistory.length === 0) {
+      toast({
+        title: t.tools.noDataToExport,
+        description: t.tools.noDataToExportDesc,
+      });
+      return;
+    }
+
+    const latest = sortedHistory[0];
+    const scoreInput: ScoredCheckup[] = sortedHistory.map((item) => ({
+      conditions: item.conditions.map((c) => ({
+        urgency: c.urgency as ScoredCheckup["conditions"][number]["urgency"],
+      })),
+      timestamp: item.timestamp?.toDate() ?? null,
+    }));
+    const { score } = calculateHealthScore(scoreInput);
+
+    const allConditions = sortedHistory.flatMap((item) => item.conditions);
+
     generateHealthReport({
       userName: user?.displayName || "Guest User",
       userEmail: user?.email || "N/A",
-      gender: "N/A",
-      age: 0,
-      symptoms: "Health Summary Report",
-      conditions: [],
-      timestamp: new Date(),
+      gender: (profile as { gender?: string } | null)?.gender || latest.gender || "N/A",
+      age: (profile as { age?: number } | null)?.age || latest.age || 0,
+      symptoms: latest.symptoms || "N/A",
+      conditions: allConditions.map((c) => ({
+        name: c.name,
+        cause: c.cause || "",
+        urgency: c.urgency,
+        nextSteps: c.nextSteps || "",
+      })),
+      timestamp: latest.timestamp?.toDate() ?? new Date(),
+      healthScore: score,
     });
   };
 

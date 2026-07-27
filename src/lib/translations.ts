@@ -67,6 +67,8 @@ export type TranslationKey = {
     medicationsDesc: string;
     healthReport: string;
     healthReportDesc: string;
+    noDataToExport: string;
+    noDataToExportDesc: string;
     addReminder: string;
     reminderPlaceholder: string;
     noReminders: string;
@@ -308,6 +310,8 @@ const translations: Record<Locale, TranslationKey> = {
       medicationsDesc: "Track your medications and dosages",
       healthReport: "Health Report",
       healthReportDesc: "Export your health summary as PDF",
+      noDataToExport: "No checkup data",
+      noDataToExportDesc: "Complete a symptom check first to export your health report.",
       addReminder: "Add",
       reminderPlaceholder: "Reminder title...",
       noReminders: "No reminders yet. Add one above.",
@@ -547,6 +551,8 @@ const translations: Record<Locale, TranslationKey> = {
       medicationsDesc: "Seguimiento de tus medicamentos y dosificaciones",
       healthReport: "Informe de salud",
       healthReportDesc: "Exportar tu resumen de salud como PDF",
+      noDataToExport: "Sin datos de chequeos",
+      noDataToExportDesc: "Primero realiza un chequeo de sintomas para poder exportar tu informe de salud.",
       addReminder: "Agregar",
       reminderPlaceholder: "Titulo del recordatorio...",
       noReminders: "No hay recordatorios aun. Agrega uno arriba.",
@@ -786,6 +792,8 @@ const translations: Record<Locale, TranslationKey> = {
       medicationsDesc: "Suivre vos medicaments et dosages",
       healthReport: "Rapport de sante",
       healthReportDesc: "Exporter votre resume de sante en PDF",
+      noDataToExport: "Aucune donnee d'examen",
+      noDataToExportDesc: "Effectuez d'abord un examen de symptomes pour pouvoir exporter votre rapport de sante.",
       addReminder: "Ajouter",
       reminderPlaceholder: "Titre du rappel...",
       noReminders: "Pas encore de rappels. Ajoutez-en un ci-dessus.",
