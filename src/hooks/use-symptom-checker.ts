@@ -121,6 +121,12 @@ export function useSymptomChecker(t: { home: { validationAgeEmpty: string; valid
     try {
       const response = await analyzeSymptoms({ gender, age: ageNum, symptoms: symptoms.trim() });
       setLoading(false);
+
+      if ("error" in response) {
+        setError(response.error);
+        return;
+      }
+
       setResult(response);
 
       if (user && db) {

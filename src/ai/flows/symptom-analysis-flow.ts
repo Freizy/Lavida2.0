@@ -27,8 +27,16 @@ const SymptomAnalysisOutputSchema = z.object({
 });
 export type SymptomAnalysisOutput = z.infer<typeof SymptomAnalysisOutputSchema>;
 
-export async function analyzeSymptoms(input: SymptomAnalysisInput): Promise<SymptomAnalysisOutput> {
-  return symptomAnalysisFlow(input);
+export type SymptomAnalysisResult =
+  | SymptomAnalysisOutput
+  | { error: string };
+
+export async function analyzeSymptoms(input: SymptomAnalysisInput): Promise<SymptomAnalysisResult> {
+  try {
+    return await symptomAnalysisFlow(input);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.' };
+  }
 }
 
 const symptomAnalysisPrompt = ai.definePrompt({

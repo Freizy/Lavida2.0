@@ -52,10 +52,21 @@ export function useHealthChat() {
         history: messagesRef.current,
         message: userMessage,
       });
-      const modelMsg: Message = { role: "model", content: response.response };
-      const finalMessages = [...messagesRef.current, modelMsg];
-      messagesRef.current = finalMessages;
-      setChatMessages(finalMessages);
+
+      if ("error" in response) {
+        const errorMsg: Message = {
+          role: "model",
+          content: response.error,
+        };
+        const finalMessages = [...messagesRef.current, errorMsg];
+        messagesRef.current = finalMessages;
+        setChatMessages(finalMessages);
+      } else {
+        const modelMsg: Message = { role: "model", content: response.response };
+        const finalMessages = [...messagesRef.current, modelMsg];
+        messagesRef.current = finalMessages;
+        setChatMessages(finalMessages);
+      }
     } catch (err: unknown) {
       const errorMsg: Message = {
         role: "model",

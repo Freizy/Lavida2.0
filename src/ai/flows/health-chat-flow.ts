@@ -30,8 +30,16 @@ const HealthChatOutputSchema = z.object({
 
 export type HealthChatOutput = z.infer<typeof HealthChatOutputSchema>;
 
-export async function chatWithLaVida(input: HealthChatInput): Promise<HealthChatOutput> {
-  return healthChatFlow(input);
+export type HealthChatResult =
+  | HealthChatOutput
+  | { error: string };
+
+export async function chatWithLaVida(input: HealthChatInput): Promise<HealthChatResult> {
+  try {
+    return await healthChatFlow(input);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.' };
+  }
 }
 
 const healthChatPrompt = ai.definePrompt({
