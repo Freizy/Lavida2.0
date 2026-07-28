@@ -2,20 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Stethoscope,
-  LogIn,
-  LogOut,
-  History,
-  HeartPulse,
-  User,
-  Bell,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { LanguageToggle } from "@/components/language-toggle";
+import { GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
+import { doc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import { useI18n } from "@/lib/i18n";
 import { NotificationPanel } from "@/components/notification-panel";
 import { useNotificationStore } from "@/hooks/use-notification-store";
 import {
@@ -25,11 +14,10 @@ import {
   isFirebaseAuthConfigured,
   firebaseAuthStatusMessage,
 } from "@/firebase";
-import { GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
-import { doc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { cn } from "@/lib/utils";
-import { useI18n } from "@/lib/i18n";
 
+import { NavBar } from "./_components/nav-bar";
+import { Footer } from "./_components/footer";
 import { SymptomForm } from "./_components/symptom-form";
 import { HealthChat } from "./_components/health-chat";
 import { HistoryPanel } from "./_components/history-panel";
@@ -48,7 +36,6 @@ export default function Home() {
   const authEnabled = isFirebaseAuthConfigured;
   const { t } = useI18n();
 
-  const [currentYear, setCurrentYear] = useState<number | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [showTools, setShowTools] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -56,10 +43,6 @@ export default function Home() {
 
   const checker = useSymptomChecker(t);
   const chat = useHealthChat();
-
-  useEffect(() => {
-    setCurrentYear(new Date().getFullYear());
-  }, []);
 
   const handleLogin = async () => {
     if (!authEnabled || !auth || !db) {
@@ -85,7 +68,7 @@ export default function Home() {
     } catch (err: unknown) {
       console.error("Login failed", err);
       checker.setError(
-        err instanceof Error ? err.message : "Sign in failed. Please check your Firebase Auth configuration.",
+        err instanceof Error ? err.message : "Sign in failed.",
       );
     }
   };
@@ -117,124 +100,24 @@ export default function Home() {
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-background text-foreground selection:bg-primary/20">
-      <nav className="w-full max-w-2xl flex items-center justify-between p-4 md:p-6 md:px-0">
-        <div
-          className="flex items-center gap-2 group cursor-pointer"
-          onClick={handleFullRestart}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              handleFullRestart();
-            }
-          }}
-          aria-label="LaVida - Go to home"
-        >
-          <div className="bg-primary p-2 rounded-xl shadow-glow transition-transform group-hover:scale-110">
-            <Stethoscope className="w-5 h-5 md:w-6 md:h-6 text-white" />
-          </div>
-          <span className="font-bold text-xl md:text-2xl tracking-tight">LaVida</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <ThemeToggle />
-          <LanguageToggle />
-          {user ? (
-            <>
-              <div className="relative hidden md:block">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowNotifications((prev) => !prev)}
-                  aria-label={t.nav.notifications || "Notifications"}
-                  className={cn(
-                    "rounded-xl transition-colors",
-                    showNotifications && "bg-primary/10 text-primary",
-                  )}
-                >
-                  <Bell className="w-5 h-5" />
-                </Button>
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center" aria-label={`${unreadCount} unread notifications`}>
-                    {unreadCount}
-                  </span>
-                )}
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setShowHistory((prev) => !prev);
-                  setShowTools(false);
-                }}
-                aria-label={t.nav.history}
-                className={cn(
-                  "rounded-xl transition-colors hidden md:flex",
-                  showHistory && "bg-primary/10 text-primary",
-                )}
-              >
-                <History className="w-5 h-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setShowTools((prev) => !prev);
-                  setShowHistory(false);
-                }}
-                aria-label={t.nav.tools || "Tools"}
-                className={cn(
-                  "rounded-xl transition-colors",
-                  showTools && "bg-primary/10 text-primary",
-                )}
-              >
-                <HeartPulse className="w-5 h-5" />
-              </Button>
-              <div className="h-6 w-[1px] bg-border" aria-hidden="true" />
-              <div className="flex items-center gap-3 pl-2">
-                <div
-                  className="cursor-pointer"
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => router.push("/dashboard")}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      router.push("/dashboard");
-                    }
-                  }}
-                  aria-label={t.nav.profile || "Go to dashboard"}
-                >
-                  <Avatar className="w-10 h-10 border-2 border-primary/20 shadow-sm">
-                    <AvatarImage src={user.photoURL || undefined} />
-                    <AvatarFallback className="bg-primary/5 text-primary">
-                      <User className="w-5 h-5" />
-                    </AvatarFallback>
-                  </Avatar>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleLogout}
-                  aria-label={t.nav.signOut || "Sign out"}
-                  className="rounded-xl text-muted-foreground hover:text-destructive"
-                >
-                  <LogOut className="w-4 h-4" />
-                </Button>
-              </div>
-            </>
-          ) : (
-            <Button
-              onClick={handleLogin}
-              disabled={!authEnabled}
-              className="lavida-button !w-auto !py-2 rounded-full px-6 shadow-glow disabled:cursor-not-allowed"
-            >
-              <LogIn className="w-4 h-4" />{" "}
-              {authEnabled ? t.nav.signIn : t.nav.signInUnavailable}
-            </Button>
-          )}
-        </div>
-      </nav>
+      <NavBar
+        unreadCount={unreadCount}
+        showHistory={showHistory}
+        showTools={showTools}
+        showNotifications={showNotifications}
+        onToggleHistory={() => {
+          setShowHistory((prev) => !prev);
+          setShowTools(false);
+        }}
+        onToggleTools={() => {
+          setShowTools((prev) => !prev);
+          setShowHistory(false);
+        }}
+        onToggleNotifications={() => setShowNotifications((prev) => !prev)}
+        onLogin={handleLogin}
+        onLogout={handleLogout}
+        authEnabled={authEnabled}
+      />
 
       <div className="relative w-full max-w-2xl px-6 md:px-0">
         <NotificationPanel
@@ -330,17 +213,7 @@ export default function Home() {
           />
         )}
 
-        <footer className="mt-auto pt-12 space-y-4 text-center">
-          <Separator className="w-12 mx-auto bg-primary/20 h-1 rounded-full" />
-          <div className="space-y-2">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
-              © {currentYear ?? "2024"} LaVida Health Labs
-            </p>
-            <p className="text-[11px] font-bold text-muted-foreground/40 leading-relaxed px-8 italic">
-              {t.footer.disclaimer}
-            </p>
-          </div>
-        </footer>
+        <Footer />
       </main>
     </div>
   );
