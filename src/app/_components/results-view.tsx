@@ -32,7 +32,7 @@ export function ResultsView({
   onRestart,
 }: ResultsViewProps) {
   const { user } = useUser();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   const handleExportPDF = () => {
     generateHealthReport({
@@ -43,6 +43,7 @@ export function ResultsView({
       symptoms,
       conditions,
       timestamp: new Date(),
+      locale,
     });
   };
 

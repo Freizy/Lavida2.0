@@ -77,7 +77,7 @@ export default function DashboardPage() {
   if (userLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary/40" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary/40" aria-label="Loading" />
       </div>
     );
   }
@@ -197,10 +197,11 @@ export default function DashboardPage() {
                 <form onSubmit={saveProfile} className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
-                      <label className="text-xs font-medium text-muted-foreground">
+                      <label htmlFor="profile-gender" className="text-xs font-medium text-muted-foreground">
                         {t.home.gender}
                       </label>
                       <select
+                        id="profile-gender"
                         value={profileForm.gender}
                         onChange={(e) =>
                           setProfileForm((prev) => ({
@@ -215,10 +216,11 @@ export default function DashboardPage() {
                       </select>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs font-medium text-muted-foreground">
+                      <label htmlFor="profile-age" className="text-xs font-medium text-muted-foreground">
                         {t.home.age}
                       </label>
                       <input
+                        id="profile-age"
                         type="number"
                         min={1}
                         max={99}
@@ -244,7 +246,7 @@ export default function DashboardPage() {
                   </Button>
 
                   {profileStatus ? (
-                    <p className="text-sm text-green-600 font-medium">
+                    <p className="text-sm text-green-600 font-medium" role="status" aria-live="polite">
                       {profileStatus}
                     </p>
                   ) : null}

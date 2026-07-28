@@ -121,6 +121,15 @@ export default function Home() {
         <div
           className="flex items-center gap-2 group cursor-pointer"
           onClick={handleFullRestart}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleFullRestart();
+            }
+          }}
+          aria-label="LaVida - Go to home"
         >
           <div className="bg-primary p-2 rounded-xl shadow-glow transition-transform group-hover:scale-110">
             <Stethoscope className="w-5 h-5 md:w-6 md:h-6 text-white" />
@@ -146,7 +155,7 @@ export default function Home() {
                   <Bell className="w-5 h-5" />
                 </Button>
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center" aria-label={`${unreadCount} unread notifications`}>
                     {unreadCount}
                   </span>
                 )}
@@ -181,7 +190,7 @@ export default function Home() {
               >
                 <HeartPulse className="w-5 h-5" />
               </Button>
-              <div className="h-6 w-[1px] bg-border" />
+              <div className="h-6 w-[1px] bg-border" aria-hidden="true" />
               <div className="flex items-center gap-3 pl-2">
                 <div
                   className="cursor-pointer"

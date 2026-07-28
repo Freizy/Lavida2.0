@@ -40,7 +40,7 @@ export function HealthChat({
   }, [messages]);
 
   return (
-    <section className="flex flex-col h-[650px] bg-card rounded-[2rem] shadow-2xl border border-border overflow-hidden animate-in zoom-in-95 duration-500">
+    <section className="flex flex-col h-[650px] bg-card rounded-[2rem] shadow-2xl border border-border overflow-hidden animate-in zoom-in-95 duration-500" aria-label={t.chat.title}>
       <header className="px-6 py-5 bg-primary text-white flex items-center justify-between shadow-lg relative z-10">
         <div className="flex items-center gap-4">
           <div className="relative">
@@ -49,7 +49,7 @@ export function HealthChat({
                 <Bot className="w-6 h-6" />
               </AvatarFallback>
             </Avatar>
-            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-400 border-2 border-primary rounded-full" />
+            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-400 border-2 border-primary rounded-full" aria-hidden="true" />
           </div>
           <div>
             <h3 className="font-black text-lg leading-none">{t.chat.title}</h3>
@@ -91,7 +91,7 @@ export function HealthChat({
             </div>
           ))}
           {loading && (
-            <div className="flex justify-start animate-in fade-in">
+            <div className="flex justify-start animate-in fade-in" role="status" aria-label={t.chat.loading || "Loading"}>
               <div className="bg-card border border-border p-4 rounded-2xl rounded-tl-none shadow-soft">
                 <div className="flex gap-1">
                   <span className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:-0.3s]" />
@@ -119,7 +119,7 @@ export function HealthChat({
           <Button
             type="submit"
             size="icon"
-            aria-label={t.chat.placeholder}
+            aria-label={t.chat.send || "Send message"}
             className="rounded-2xl h-14 w-14 bg-primary hover:bg-primary/90 shadow-glow transition-all"
             disabled={loading || !input.trim()}
           >

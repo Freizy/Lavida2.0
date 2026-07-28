@@ -1,3 +1,5 @@
+import { headers } from "next/headers";
+
 const buckets = new Map<string, { count: number; resetAt: number }>();
 
 export interface RateLimitConfig {
@@ -25,13 +27,24 @@ export function checkRateLimit(
   return { allowed: true, retryAfterMs: 0 };
 }
 
+async function getClientIp(): Promise<string> {
+  const h = await headers();
+  return (
+    h.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    h.get("x-real-ip") ||
+    "unknown"
+  );
+}
+
 const SYMPTOM_LIMIT: RateLimitConfig = { windowMs: 60_000, maxRequests: 5 };
 const CHAT_LIMIT: RateLimitConfig = { windowMs: 60_000, maxRequests: 20 };
 
-export function checkSymptomRateLimit(userId: string) {
-  return checkRateLimit(`symptom:${userId}`, SYMPTOM_LIMIT);
+export async function checkSymptomRateLimit() {
+  const ip = await getClientIp();
+  return checkRateLimit(`symptom:${ip}`, SYMPTOM_LIMIT);
 }
 
-export function checkChatRateLimit(userId: string) {
-  return checkRateLimit(`chat:${userId}`, CHAT_LIMIT);
+export async function checkChatRateLimit() {
+  const ip = await getClientIp();
+  return checkRateLimit(`chat:${ip}`, CHAT_LIMIT);
 }

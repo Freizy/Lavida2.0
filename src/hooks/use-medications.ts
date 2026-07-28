@@ -45,7 +45,7 @@ export function useMedications() {
   }, [medicationsRef, uid]);
 
   const { data: rawMedications, loading } = useCollection(queryRef);
-  const medications = useMemo(() => (rawMedications || []) as Medication[], [rawMedications]);
+  const medications = useMemo(() => (rawMedications || []) as unknown as Medication[], [rawMedications]);
 
   const addMedication = useCallback(
     async (med: Omit<Medication, "id" | "createdAt" | "userId">) => {

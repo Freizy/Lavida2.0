@@ -77,6 +77,8 @@ export type TranslationKey = {
     back: string;
     close: string;
     activeCount: string;
+    activateReminder: string;
+    deactivateReminder: string;
   };
   chat: {
     title: string;
@@ -84,6 +86,8 @@ export type TranslationKey = {
     online: string;
     placeholder: string;
     close: string;
+    send: string;
+    loading: string;
     error: string;
   };
   dashboard: {
@@ -322,6 +326,8 @@ const translations: Record<Locale, TranslationKey> = {
       back: "Back",
       close: "Close",
       activeCount: "{count} active",
+      activateReminder: "Activate reminder",
+      deactivateReminder: "Deactivate reminder",
     },
     chat: {
       title: "LaVida Buddy",
@@ -329,6 +335,8 @@ const translations: Record<Locale, TranslationKey> = {
       online: "Online",
       placeholder: "Ask a follow-up question...",
       close: "Close",
+      send: "Send message",
+      loading: "Loading",
       error: "Sorry, I couldn't process that. Please try again.",
     },
     dashboard: {
@@ -565,6 +573,8 @@ const translations: Record<Locale, TranslationKey> = {
       back: "Volver",
       close: "Cerrar",
       activeCount: "{count} activo(s)",
+      activateReminder: "Activar recordatorio",
+      deactivateReminder: "Desactivar recordatorio",
     },
     chat: {
       title: "Companero LaVida",
@@ -572,6 +582,8 @@ const translations: Record<Locale, TranslationKey> = {
       online: "En linea",
       placeholder: "Haz una pregunta de seguimiento...",
       close: "Cerrar",
+      send: "Enviar mensaje",
+      loading: "Cargando",
       error: "Lo siento, no pude procesar eso. Por favor intentalo de nuevo.",
     },
     dashboard: {
@@ -808,6 +820,8 @@ const translations: Record<Locale, TranslationKey> = {
       back: "Retour",
       close: "Fermer",
       activeCount: "{count} actif(s)",
+      activateReminder: "Activer le rappel",
+      deactivateReminder: "Desactiver le rappel",
     },
     chat: {
       title: "Assistant LaVida",
@@ -815,6 +829,8 @@ const translations: Record<Locale, TranslationKey> = {
       online: "En ligne",
       placeholder: "Posez une question de suivi...",
       close: "Fermer",
+      send: "Envoyer le message",
+      loading: "Chargement",
       error: "Desole, je n'ai pas pu traiter cela. Veuillez reessayer.",
     },
     dashboard: {

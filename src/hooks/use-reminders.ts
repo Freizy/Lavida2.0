@@ -42,7 +42,7 @@ export function useReminders() {
   }, [remindersRef, uid]);
 
   const { data: rawReminders, loading } = useCollection(queryRef);
-  const reminders = useMemo(() => (rawReminders || []) as Reminder[], [rawReminders]);
+  const reminders = useMemo(() => (rawReminders || []) as unknown as Reminder[], [rawReminders]);
 
   const addReminder = useCallback(
     async (reminder: Omit<Reminder, "id" | "createdAt" | "userId">) => {

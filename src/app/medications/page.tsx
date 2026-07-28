@@ -29,7 +29,7 @@ export default function MedicationsPage() {
   if (userLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary/40" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary/40" aria-label="Loading" />
       </div>
     );
   }
@@ -44,6 +44,7 @@ export default function MedicationsPage() {
               size="icon"
               onClick={() => router.push("/")}
               className="rounded-xl"
+              aria-label="Back to home"
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>

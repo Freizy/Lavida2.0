@@ -44,7 +44,7 @@ export function useNotificationStore() {
   }, [notificationsRef, uid]);
 
   const { data: rawNotifications, loading } = useCollection(queryRef);
-  const notifications = useMemo(() => (rawNotifications || []) as NotificationItem[], [rawNotifications]);
+  const notifications = useMemo(() => (rawNotifications || []) as unknown as NotificationItem[], [rawNotifications]);
 
   const addNotification = useCallback(
     async (title: string, body: string, type: NotificationItem["type"] = "info") => {

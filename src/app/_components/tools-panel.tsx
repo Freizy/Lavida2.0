@@ -5,21 +5,13 @@ import {
   HeartPulse,
   CalendarClock,
   Pill,
-  ClipboardList,
   Bell,
   History,
-  Plus,
-  Trash2,
-  Power,
-  X,
   FileDown,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from "@/components/ui/alert-dialog";
 import { useI18n } from "@/lib/i18n";
 import { useReminders } from "@/hooks/use-reminders";
 import { useUser, useFirestore, useDoc } from "@/firebase";
@@ -29,6 +21,7 @@ import { doc } from "firebase/firestore";
 import { calculateHealthScore, type ScoredCheckup } from "@/lib/health-score";
 import { useToast } from "@/hooks/use-toast";
 import { useHistory } from "@/hooks/use-history";
+import { RemindersPanel } from "./reminders-panel";
 
 type ToolsPanelProps = {
   onWellnessAssistant: () => void;
@@ -37,21 +30,61 @@ type ToolsPanelProps = {
   onClose: () => void;
 };
 
+function ToolCard({
+  icon,
+  iconColor,
+  title,
+  description,
+  badge,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  iconColor: string;
+  title: string;
+  description: string;
+  badge?: string;
+  onClick: () => void;
+}) {
+  return (
+    <Card
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className="overflow-hidden cursor-pointer transition-all hover:border-primary/50 hover:shadow-md"
+    >
+      <CardContent className="p-4 flex flex-col items-center text-center gap-3">
+        <div className={`p-3 rounded-xl ${iconColor}`}>{icon}</div>
+        <div>
+          <p className="text-sm font-semibold">{title}</p>
+          <p className="text-xs text-muted-foreground mt-1">{description}</p>
+        </div>
+        {badge && (
+          <Badge className="bg-amber-500 text-white text-[10px]">{badge}</Badge>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function ToolsPanel({
   onWellnessAssistant,
   onOpenNotifications,
   onOpenHistory,
   onClose,
 }: ToolsPanelProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const router = useRouter();
   const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
-  const { reminders, addReminder, deleteReminder, toggleReminder } = useReminders();
+  const { reminders } = useReminders();
   const [showReminders, setShowReminders] = useState(false);
-  const [newReminderTitle, setNewReminderTitle] = useState("");
-  const [newReminderTime, setNewReminderTime] = useState("08:00");
 
   const profileRef = useMemo(() => {
     if (!user?.uid || !db) return null;
@@ -63,17 +96,7 @@ export function ToolsPanel({
   const { items: rawHistory } = useHistory();
   const sortedHistory = rawHistory ?? [];
 
-  const handleAddReminder = () => {
-    if (!newReminderTitle.trim()) return;
-    addReminder({
-      title: newReminderTitle.trim(),
-      description: "",
-      time: newReminderTime,
-      repeat: "daily",
-      active: true,
-    });
-    setNewReminderTitle("");
-  };
+  const activeCount = reminders.filter((r) => r.active).length;
 
   const handleHealthSummary = () => {
     if (sortedHistory.length === 0) {
@@ -92,7 +115,6 @@ export function ToolsPanel({
       timestamp: item.timestamp?.toDate() ?? null,
     }));
     const { score } = calculateHealthScore(scoreInput);
-
     const allConditions = sortedHistory.flatMap((item) => item.conditions);
 
     generateHealthReport({
@@ -109,6 +131,7 @@ export function ToolsPanel({
       })),
       timestamp: latest.timestamp?.toDate() ?? new Date(),
       healthScore: score,
+      locale,
     });
   };
 
@@ -123,269 +146,57 @@ export function ToolsPanel({
         </Button>
       </div>
 
-      {!showReminders ? (
-        <div className="grid grid-cols-2 gap-3">
-          <Card
-            role="button"
-            tabIndex={0}
-            onClick={onWellnessAssistant}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onWellnessAssistant();
-              }
-            }}
-            className="overflow-hidden cursor-pointer transition-all hover:border-primary/50 hover:shadow-md"
-          >
-            <CardContent className="p-4 flex flex-col items-center text-center gap-3">
-              <div className="p-3 rounded-xl bg-blue-500/10 text-blue-600">
-                <CalendarClock className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold">{t.tools.assistant}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {t.tools.assistantDesc}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card
-            role="button"
-            tabIndex={0}
-            onClick={() => setShowReminders(true)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                setShowReminders(true);
-              }
-            }}
-            className="overflow-hidden cursor-pointer transition-all hover:border-primary/50 hover:shadow-md"
-          >
-            <CardContent className="p-4 flex flex-col items-center text-center gap-3">
-              <div className="p-3 rounded-xl bg-amber-500/10 text-amber-600">
-                <Bell className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold">{t.tools.reminders}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {t.tools.remindersDesc}
-                </p>
-              </div>
-              {reminders.filter((r: any) => r.active).length > 0 && (
-                <Badge className="bg-amber-500 text-white text-[10px]">
-                  {t.tools.activeCount.replace("{count}", String(reminders.filter((r: any) => r.active).length))}
-                </Badge>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card
-            role="button"
-            tabIndex={0}
-            onClick={onOpenNotifications}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onOpenNotifications();
-              }
-            }}
-            className="overflow-hidden cursor-pointer transition-all hover:border-primary/50 hover:shadow-md md:hidden"
-          >
-            <CardContent className="p-4 flex flex-col items-center text-center gap-3">
-              <div className="p-3 rounded-xl bg-rose-500/10 text-rose-600">
-                <Bell className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold">{t.tools.notifications}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {t.tools.notificationsDesc}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card
-            role="button"
-            tabIndex={0}
-            onClick={onOpenHistory}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onOpenHistory();
-              }
-            }}
-            className="overflow-hidden cursor-pointer transition-all hover:border-primary/50 hover:shadow-md md:hidden"
-          >
-            <CardContent className="p-4 flex flex-col items-center text-center gap-3">
-              <div className="p-3 rounded-xl bg-cyan-500/10 text-cyan-600">
-                <History className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold">{t.nav.history}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {t.tools.historyDesc}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card
-            role="button"
-            tabIndex={0}
-            onClick={() => router.push("/medications")}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                router.push("/medications");
-              }
-            }}
-            className="overflow-hidden cursor-pointer transition-all hover:border-primary/50 hover:shadow-md"
-          >
-            <CardContent className="p-4 flex flex-col items-center text-center gap-3">
-              <div className="p-3 rounded-xl bg-purple-500/10 text-purple-600">
-                <Pill className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold">{t.tools.medications}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {t.tools.medicationsDesc}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card
-            role="button"
-            tabIndex={0}
-            onClick={handleHealthSummary}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                handleHealthSummary();
-              }
-            }}
-            className="overflow-hidden cursor-pointer transition-all hover:border-primary/50 hover:shadow-md"
-          >
-            <CardContent className="p-4 flex flex-col items-center text-center gap-3">
-              <div className="p-3 rounded-xl bg-green-500/10 text-green-600">
-                <FileDown className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold">{t.tools.healthReport}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {t.tools.healthReportDesc}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      {showReminders ? (
+        <RemindersPanel onBack={() => setShowReminders(false)} />
       ) : (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowReminders(false)}
-              className="gap-1"
-            >
-              <X className="w-4 h-4" /> {t.tools.back}
-            </Button>
-          </div>
-
-          <div className="flex gap-2">
-            <Input
-              value={newReminderTitle}
-              onChange={(e) => setNewReminderTitle(e.target.value)}
-              placeholder={t.tools.reminderPlaceholder}
-              className="flex-1"
-              onKeyDown={(e) => e.key === "Enter" && handleAddReminder()}
-            />
-            <Input
-              type="time"
-              value={newReminderTime}
-              onChange={(e) => setNewReminderTime(e.target.value)}
-              className="w-28"
-            />
-            <Button
-              onClick={handleAddReminder}
-              disabled={!newReminderTitle.trim()}
-              size="icon"
-              className="shrink-0"
-            >
-              <Plus className="w-4 h-4" />
-            </Button>
-          </div>
-
-          <ScrollArea className="h-[40vh]">
-            <div className="space-y-2">
-              {reminders.length === 0 ? (
-                <div className="text-center py-12 space-y-3">
-                  <Bell className="w-10 h-10 text-muted-foreground/20 mx-auto" />
-                    <p className="text-sm text-muted-foreground">
-                    {t.tools.noReminders}
-                  </p>
-                </div>
-              ) : (
-                reminders.map((reminder: any) => (
-                  <div
-                    key={reminder.id}
-                    className="flex items-center justify-between p-3 rounded-xl border hover:bg-secondary/30 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${reminder.active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
-                        <Bell className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <p className={`text-sm font-medium ${!reminder.active && "text-muted-foreground"}`}>
-                          {reminder.title}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {reminder.time} • {reminder.repeat}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => toggleReminder(reminder.id, reminder.active)}
-                        className="h-7 w-7"
-                      >
-                        <Power className={`w-3 h-3 ${reminder.active ? "text-green-500" : "text-muted-foreground"}`} />
-                      </Button>
-                        <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive/60 hover:text-destructive"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>{t.confirm.deleteTitle}</AlertDialogTitle>
-                            <AlertDialogDescription>{t.confirm.deleteDescription}</AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>{t.confirm.cancel}</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => deleteReminder(reminder.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              {t.confirm.confirm}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </ScrollArea>
+        <div className="grid grid-cols-2 gap-3">
+          <ToolCard
+            icon={<CalendarClock className="w-6 h-6" />}
+            iconColor="bg-blue-500/10 text-blue-600"
+            title={t.tools.assistant}
+            description={t.tools.assistantDesc}
+            onClick={onWellnessAssistant}
+          />
+          <ToolCard
+            icon={<Bell className="w-6 h-6" />}
+            iconColor="bg-amber-500/10 text-amber-600"
+            title={t.tools.reminders}
+            description={t.tools.remindersDesc}
+            badge={
+              activeCount > 0
+                ? t.tools.activeCount.replace("{count}", String(activeCount))
+                : undefined
+            }
+            onClick={() => setShowReminders(true)}
+          />
+          <ToolCard
+            icon={<Bell className="w-6 h-6" />}
+            iconColor="bg-rose-500/10 text-rose-600"
+            title={t.tools.notifications}
+            description={t.tools.notificationsDesc}
+            onClick={onOpenNotifications}
+          />
+          <ToolCard
+            icon={<History className="w-6 h-6" />}
+            iconColor="bg-cyan-500/10 text-cyan-600"
+            title={t.nav.history}
+            description={t.tools.historyDesc}
+            onClick={onOpenHistory}
+          />
+          <ToolCard
+            icon={<Pill className="w-6 h-6" />}
+            iconColor="bg-purple-500/10 text-purple-600"
+            title={t.tools.medications}
+            description={t.tools.medicationsDesc}
+            onClick={() => router.push("/medications")}
+          />
+          <ToolCard
+            icon={<FileDown className="w-6 h-6" />}
+            iconColor="bg-green-500/10 text-green-600"
+            title={t.tools.healthReport}
+            description={t.tools.healthReportDesc}
+            onClick={handleHealthSummary}
+          />
         </div>
       )}
     </div>

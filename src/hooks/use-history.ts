@@ -38,11 +38,11 @@ export function useHistory(maxItems = 50) {
 
   const items = useMemo(() => {
     if (!rawItems) return null;
-    return [...(rawItems as HistoryDoc[])].sort((a, b) => {
-      const aTime = a.timestamp?.toDate?.()?.getTime?.() || 0;
-      const bTime = b.timestamp?.toDate?.()?.getTime?.() || 0;
+    return [...rawItems].sort((a, b) => {
+      const aTime = (a.timestamp as HistoryDoc["timestamp"])?.toDate?.()?.getTime?.() || 0;
+      const bTime = (b.timestamp as HistoryDoc["timestamp"])?.toDate?.()?.getTime?.() || 0;
       return bTime - aTime;
-    });
+    }) as HistoryDoc[];
   }, [rawItems]);
 
   return { items, loading, error };

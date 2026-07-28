@@ -11,6 +11,7 @@ import { getAI } from '@/ai/genkit';
 const ai = getAI();
 import { z } from 'genkit';
 import { validateSymptomInput } from '@/lib/input-guard';
+import { checkSymptomRateLimit } from '@/lib/rate-limit';
 
 const SymptomAnalysisInputSchema = z.object({
   gender: z.enum(['Male', 'Female']).describe('The gender of the user.'),
@@ -34,6 +35,11 @@ export type SymptomAnalysisResult =
   | { error: string };
 
 export async function analyzeSymptoms(input: SymptomAnalysisInput): Promise<SymptomAnalysisResult> {
+  const rateLimit = await checkSymptomRateLimit();
+  if (!rateLimit.allowed) {
+    return { error: `Too many requests. Please try again in ${Math.ceil(rateLimit.retryAfterMs / 1000)} seconds.` };
+  }
+
   const validationError = validateSymptomInput(input.symptoms);
   if (validationError) {
     return { error: validationError };
@@ -42,7 +48,7 @@ export async function analyzeSymptoms(input: SymptomAnalysisInput): Promise<Symp
   try {
     return await symptomAnalysisFlow(input);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.' };
+    return { error: 'An unexpected error occurred. Please try again.' };
   }
 }
 

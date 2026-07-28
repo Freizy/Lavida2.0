@@ -7,11 +7,14 @@ import { getAI } from '@/ai/genkit';
 const ai = getAI();
 import { z } from 'genkit';
 import { validateChatMessage } from '@/lib/input-guard';
+import { checkChatRateLimit } from '@/lib/rate-limit';
 
 const MessageSchema = z.object({
   role: z.enum(['user', 'model']),
   content: z.string(),
 });
+
+const MAX_HISTORY_LENGTH = 20;
 
 const HealthChatInputSchema = z.object({
   initialContext: z.object({
@@ -37,15 +40,24 @@ export type HealthChatResult =
   | { error: string };
 
 export async function chatWithLaVida(input: HealthChatInput): Promise<HealthChatResult> {
+  const rateLimit = await checkChatRateLimit();
+  if (!rateLimit.allowed) {
+    return { error: `Too many requests. Please try again in ${Math.ceil(rateLimit.retryAfterMs / 1000)} seconds.` };
+  }
+
   const validationError = validateChatMessage(input.message);
   if (validationError) {
     return { error: validationError };
   }
 
+  const safeHistory = input.history
+    .slice(-MAX_HISTORY_LENGTH)
+    .filter((msg) => msg.role === 'user' || msg.role === 'model');
+
   try {
-    return await healthChatFlow(input);
+    return await healthChatFlow({ ...input, history: safeHistory });
   } catch (err) {
-    return { error: err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.' };
+    return { error: 'An unexpected error occurred. Please try again.' };
   }
 }
 
