@@ -137,6 +137,7 @@ export default function Home() {
                   variant="ghost"
                   size="icon"
                   onClick={() => setShowNotifications((prev) => !prev)}
+                  aria-label={t.nav.notifications || "Notifications"}
                   className={cn(
                     "rounded-xl transition-colors",
                     showNotifications && "bg-primary/10 text-primary",
@@ -157,6 +158,7 @@ export default function Home() {
                   setShowHistory((prev) => !prev);
                   setShowTools(false);
                 }}
+                aria-label={t.nav.history}
                 className={cn(
                   "rounded-xl transition-colors hidden md:flex",
                   showHistory && "bg-primary/10 text-primary",
@@ -171,6 +173,7 @@ export default function Home() {
                   setShowTools((prev) => !prev);
                   setShowHistory(false);
                 }}
+                aria-label={t.nav.tools || "Tools"}
                 className={cn(
                   "rounded-xl transition-colors",
                   showTools && "bg-primary/10 text-primary",
@@ -180,7 +183,19 @@ export default function Home() {
               </Button>
               <div className="h-6 w-[1px] bg-border" />
               <div className="flex items-center gap-3 pl-2">
-                <div className="cursor-pointer" onClick={() => router.push("/dashboard")}>
+                <div
+                  className="cursor-pointer"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => router.push("/dashboard")}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      router.push("/dashboard");
+                    }
+                  }}
+                  aria-label={t.nav.profile || "Go to dashboard"}
+                >
                   <Avatar className="w-10 h-10 border-2 border-primary/20 shadow-sm">
                     <AvatarImage src={user.photoURL || undefined} />
                     <AvatarFallback className="bg-primary/5 text-primary">
@@ -192,6 +207,7 @@ export default function Home() {
                   variant="ghost"
                   size="icon"
                   onClick={handleLogout}
+                  aria-label={t.nav.signOut || "Sign out"}
                   className="rounded-xl text-muted-foreground hover:text-destructive"
                 >
                   <LogOut className="w-4 h-4" />

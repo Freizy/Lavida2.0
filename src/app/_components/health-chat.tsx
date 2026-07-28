@@ -69,7 +69,7 @@ export function HealthChat({
       </header>
 
       <ScrollArea className="flex-1 px-6 py-6 bg-secondary/30">
-        <div className="space-y-6">
+        <div className="space-y-6" role="log" aria-label={t.chat.title} aria-live="polite">
           {messages.map((msg, idx) => (
             <div
               key={idx}
@@ -112,12 +112,14 @@ export function HealthChat({
             placeholder={t.chat.placeholder}
             value={input}
             onChange={(e) => onInputChange(e.target.value)}
+            aria-label={t.chat.placeholder}
             className="flex-1 bg-secondary/80 rounded-2xl px-5 py-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all border-none"
             disabled={loading}
           />
           <Button
             type="submit"
             size="icon"
+            aria-label={t.chat.placeholder}
             className="rounded-2xl h-14 w-14 bg-primary hover:bg-primary/90 shadow-glow transition-all"
             disabled={loading || !input.trim()}
           >

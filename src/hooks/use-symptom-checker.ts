@@ -1,19 +1,17 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useUser, useFirestore, useDoc, useCollection } from "@/firebase";
+import { useUser, useFirestore, useDoc } from "@/firebase";
 import {
   collection,
   addDoc,
   doc,
   setDoc,
   serverTimestamp,
-  query,
-  where,
-  limit,
 } from "firebase/firestore";
 import { analyzeSymptoms, type SymptomAnalysisOutput } from "@/ai/flows/symptom-analysis-flow";
 import { useToast } from "@/hooks/use-toast";
+import { useHistory } from "@/hooks/use-history";
 
 export function useSymptomChecker(t: { home: { validationAgeEmpty: string; validationAgeInvalid: string; profileSaved: string; profileSavedDesc: string; chatWelcome: string; error: string } }) {
   const { user } = useUser();
@@ -37,28 +35,7 @@ export function useSymptomChecker(t: { home: { validationAgeEmpty: string; valid
 
   const { data: profile } = useDoc(profileRef);
 
-  const historyQuery = useMemo(() => {
-    if (!user?.uid || !db) return null;
-    return query(
-      collection(db, "history"),
-      where("userId", "==", user.uid),
-      limit(50),
-    );
-  }, [user?.uid, db]);
-
-  const { data: rawHistoryItems, loading: historyLoading, error: historyError } =
-    useCollection(historyQuery);
-
-  type HistoryDoc = { id: string; gender: string; age: number; symptoms: string; conditions: { name: string; cause?: string; urgency: string; nextSteps?: string }[]; timestamp: { toDate: () => Date } | null; userId: string };
-
-  const historyItems = useMemo(() => {
-    if (!rawHistoryItems) return null;
-    return [...(rawHistoryItems as HistoryDoc[])].sort((a, b) => {
-      const aTime = a.timestamp?.toDate?.()?.getTime?.() || 0;
-      const bTime = b.timestamp?.toDate?.()?.getTime?.() || 0;
-      return bTime - aTime;
-    });
-  }, [rawHistoryItems]);
+  const { items: historyItems, loading: historyLoading, error: historyError } = useHistory();
 
   useEffect(() => {
     if (prevUidRef.current !== user?.uid) {

@@ -7,6 +7,8 @@ export type TranslationKey = {
     signIn: string;
     signOut: string;
     signInUnavailable: string;
+    notifications: string;
+    profile: string;
   };
   home: {
     title: string;
@@ -250,6 +252,8 @@ const translations: Record<Locale, TranslationKey> = {
       signIn: "Sign In",
       signOut: "Sign Out",
       signInUnavailable: "Sign In Unavailable",
+      notifications: "Notifications",
+      profile: "Go to dashboard",
     },
     home: {
       title: "How are you",
@@ -491,6 +495,8 @@ const translations: Record<Locale, TranslationKey> = {
       signIn: "Iniciar sesion",
       signOut: "Cerrar sesion",
       signInUnavailable: "Inicio de sesion no disponible",
+      notifications: "Notificaciones",
+      profile: "Ir al panel",
     },
     home: {
       title: "Como te",
@@ -732,6 +738,8 @@ const translations: Record<Locale, TranslationKey> = {
       signIn: "Se connecter",
       signOut: "Deconnexion",
       signInUnavailable: "Connexion indisponible",
+      notifications: "Notifications",
+      profile: "Aller au tableau de bord",
     },
     home: {
       title: "Comment",

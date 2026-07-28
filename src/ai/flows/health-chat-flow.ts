@@ -6,6 +6,7 @@
 import { getAI } from '@/ai/genkit';
 const ai = getAI();
 import { z } from 'genkit';
+import { validateChatMessage } from '@/lib/input-guard';
 
 const MessageSchema = z.object({
   role: z.enum(['user', 'model']),
@@ -36,6 +37,11 @@ export type HealthChatResult =
   | { error: string };
 
 export async function chatWithLaVida(input: HealthChatInput): Promise<HealthChatResult> {
+  const validationError = validateChatMessage(input.message);
+  if (validationError) {
+    return { error: validationError };
+  }
+
   try {
     return await healthChatFlow(input);
   } catch (err) {

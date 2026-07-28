@@ -22,12 +22,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from "@/components/ui/alert-dialog";
 import { useI18n } from "@/lib/i18n";
 import { useReminders } from "@/hooks/use-reminders";
-import { useUser, useFirestore, useDoc, useCollection } from "@/firebase";
+import { useUser, useFirestore, useDoc } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { generateHealthReport } from "@/lib/generate-report";
-import { collection, doc, query, where, limit as firestoreLimit } from "firebase/firestore";
+import { doc } from "firebase/firestore";
 import { calculateHealthScore, type ScoredCheckup } from "@/lib/health-score";
 import { useToast } from "@/hooks/use-toast";
+import { useHistory } from "@/hooks/use-history";
 
 type ToolsPanelProps = {
   onWellnessAssistant: () => void;
@@ -59,27 +60,8 @@ export function ToolsPanel({
 
   const { data: profile } = useDoc(profileRef);
 
-  const historyQuery = useMemo(() => {
-    if (!user?.uid || !db) return null;
-    return query(
-      collection(db, "history"),
-      where("userId", "==", user.uid),
-      firestoreLimit(50),
-    );
-  }, [user?.uid, db]);
-
-  const { data: rawHistoryItems } = useCollection(historyQuery);
-
-  type HistoryDoc = { gender: string; age: number; symptoms: string; conditions: { name: string; cause?: string; urgency: string; nextSteps?: string }[]; timestamp: { toDate: () => Date } | null };
-
-  const sortedHistory = useMemo(() => {
-    if (!rawHistoryItems) return [];
-    return [...(rawHistoryItems as HistoryDoc[])].sort((a, b) => {
-      const aTime = a.timestamp?.toDate?.()?.getTime?.() || 0;
-      const bTime = b.timestamp?.toDate?.()?.getTime?.() || 0;
-      return bTime - aTime;
-    });
-  }, [rawHistoryItems]);
+  const { items: rawHistory } = useHistory();
+  const sortedHistory = rawHistory ?? [];
 
   const handleAddReminder = () => {
     if (!newReminderTitle.trim()) return;

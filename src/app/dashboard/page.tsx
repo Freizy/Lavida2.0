@@ -17,17 +17,13 @@ import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useUser, useFirestore, useDoc } from "@/firebase";
 import {
-  collection,
   doc,
-  query,
   serverTimestamp,
   setDoc,
-  where,
-  limit,
 } from "firebase/firestore";
-import { useCollection } from "@/firebase";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
+import { useHistory } from "@/hooks/use-history";
 
 import { DashboardStats } from "./_components/dashboard-stats";
 import { HealthOverview } from "./_components/health-overview";
@@ -60,29 +56,7 @@ export default function DashboardPage() {
 
   const { data: profile } = useDoc(profileRef);
 
-  const historyQuery = useMemo(() => {
-    if (!user?.uid || !db) return null;
-
-    return query(
-      collection(db, "history"),
-      where("userId", "==", user.uid),
-      limit(50),
-    );
-  }, [user?.uid, db]);
-
-  const { data: rawHistoryItems, loading: historyLoading } =
-    useCollection(historyQuery);
-
-  type HistoryDoc = { gender: string; age: number; symptoms: string; conditions: { name: string; cause?: string; urgency: string; nextSteps?: string }[]; timestamp: { toDate: () => Date } | null; userId: string };
-
-  const historyItems = useMemo(() => {
-    if (!rawHistoryItems) return null;
-    return [...(rawHistoryItems as HistoryDoc[])].sort((a, b) => {
-      const aTime = a.timestamp?.toDate?.()?.getTime?.() || 0;
-      const bTime = b.timestamp?.toDate?.()?.getTime?.() || 0;
-      return bTime - aTime;
-    });
-  }, [rawHistoryItems]);
+  const { items: historyItems, loading: historyLoading } = useHistory();
 
   useEffect(() => {
     if (!profile || profileLoadedRef.current) return;
