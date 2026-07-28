@@ -15,6 +15,7 @@ import {
   firebaseAuthStatusMessage,
 } from "@/firebase";
 import { cn } from "@/lib/utils";
+import { getAuthErrorMessage } from "@/lib/auth-errors";
 
 import { NavBar } from "./_components/nav-bar";
 import { Footer } from "./_components/footer";
@@ -66,10 +67,13 @@ export default function Home() {
       );
       router.push("/dashboard");
     } catch (err: unknown) {
-      console.error("Login failed", err);
-      checker.setError(
-        err instanceof Error ? err.message : "Sign in failed.",
-      );
+      console.error("[LaVida] Login failed - full error:", err);
+      if (err instanceof Error) {
+        console.error("[LaVida] Error name:", err.name);
+        console.error("[LaVida] Error message:", err.message);
+        if ("code" in err) console.error("[LaVida] Error code:", (err as { code: string }).code);
+      }
+      checker.setError(getAuthErrorMessage(err));
     }
   };
 
